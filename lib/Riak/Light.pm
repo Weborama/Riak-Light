@@ -62,7 +62,7 @@ sub get {
   $code = unpack( 'c', $code );
   
   my $encoded_message;
-  $self->socket->sysread( $encoded_message, $len - 1 ) if $len;
+  $self->socket->sysread( $encoded_message, $len - 1 ) if $len > 1;
   
   return decode_json(RpbGetResp->decode($encoded_message)->content->[0]->value) if $code == 10;
   
@@ -98,7 +98,7 @@ sub put {
   $code = unpack( 'c', $code );
   
   my $encoded_message;
-  $self->socket->sysread( $encoded_message, $len - 1 ) if $len;
+  $self->socket->sysread( $encoded_message, $len - 1 ) if $len > 1;
   
   $code == 12
 }
@@ -129,7 +129,7 @@ sub del {
   $code = unpack( 'c', $code );
   
   my $encoded_message;
-  $self->socket->sysread( $encoded_message, $len - 1 ) if $len;
+  $self->socket->sysread( $encoded_message, $len - 1 ) if $len > 1;
   
   $code == 14
 }
