@@ -25,17 +25,27 @@ has socket  => (
 
 sub _build_socket {
   my $self = shift;
-  IO::Socket::INET->new(
-    PeerAddr => $self->host,
-    PeerPort => $self->port,
+  my $host = $self->host;
+  my $port = $self->port;
+  
+  my $socket = IO::Socket::INET->new(
+    PeerAddr => $host,
+    PeerPort => $port,
     Timeout  => $self->timeout,
     Proto    => 'tcp'
-  )
+  );
+  
+  $self->_set_last_error("Error: $! for host $host, port $port") 
+    unless defined $socket;
+  
+  $socket
 }
 
 has last_error => (
   is => 'rwp', 
-  default => sub { "" }
+  clearer => 1,
+  predicate => 1,
+  default => sub { undef }
 );
 
 sub get {
@@ -50,8 +60,15 @@ sub get {
   
   my ($code, $decoded_message) = $self->_perform_request($request_code, $request);
   
-  return decode_json($decoded_message->content->[0]->value) if $code == 10;
+  return decode_json($decoded_message->content->[0]->value) 
+    if $code == 10 
+    and defined $decoded_message
+    and defined $decoded_message->content
+    and defined $decoded_message->content->[0]
+    and defined $decoded_message->content->[0]->value;
   
+  $self->clear_last_error() if $code == 10;
+    
   undef
 }
 
@@ -84,7 +101,7 @@ sub del {
   });
   
   my $request_code = 13; # request 13 => DEL, response 14 => DEL
-  
+
   my ($code, undef) = $self->_perform_request($request_code, $request);
   
   $code == 14
@@ -92,6 +109,8 @@ sub del {
 
 sub _perform_request {
   my ($self, $request_code, $request) = @_; 
+  
+  return (-1, undef) unless( $self->socket );
   
   my $message      = pack( 'c', $request_code ) . $request;
   my $len          = bytes::length($message);
@@ -114,7 +133,15 @@ sub _perform_request {
     10 => 'RpbGetResp',
   );
   
-  ($code, (exists $decoder{$code} and $decoder{$code}->can('decode'))? $decoder{$code}->decode($encoded_message) : undef)
+  my $decoded_message = (
+    defined $encoded_message
+    and exists $decoder{$code} 
+    and $decoder{$code}->can('decode')
+    )? $decoder{$code}->decode($encoded_message) : undef;
+  
+  $self->_set_last_error($decoded_message) if $code == 0;
+  
+  ($code, $decoded_message)
 }
 
 1;
