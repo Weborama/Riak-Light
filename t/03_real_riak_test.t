@@ -1,5 +1,4 @@
 use Test::More tests => 8;
-use Test::Exception;
 use Riak::Light;
 
 SKIP: {
