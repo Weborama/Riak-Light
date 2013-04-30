@@ -29,17 +29,19 @@ sub test_riak_light {
 sub test_net_riak {
   my $key = "key" . int(rand(1024));
   $net_riak_bucket->new_object($key, $hash)->store;
-  $net_riak_bucket->get($key);
+  $net_riak_bucket->get($key)->data;
 }
 
-cmpthese(10_000, {
+cmpthese(5_000, {
   "Riak::Light" => \&test_riak_light,
   "Net::Riak" => \&test_net_riak
 });
 
 __END__
 
+using a local riak
+
 $ perl -I ./lib benchmarks/simple.pl 
               Rate   Net::Riak Riak::Light
-Net::Riak    485/s          --        -78%
-Riak::Light 2227/s        359%          --
+Net::Riak    479/s          --        -78%
+Riak::Light 2165/s        352%          --
