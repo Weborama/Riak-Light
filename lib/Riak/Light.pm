@@ -4,6 +4,9 @@ package Riak::Light;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 use IO::Socket;
+use Riak::Light::PBC;
+use JSON;
+require bytes;
 
 has port    => (is => 'ro', isa => Int,  required => 1);
 has host    => (is => 'ro', isa => Str,  required => 1);
@@ -12,7 +15,7 @@ has autodie => (is => 'ro', isa => Bool, default  => sub { 0 });
 
 has r       => ( is => 'ro', isa => Int, default => sub { 2 });
 has w       => ( is => 'ro', isa => Int, default => sub { 2 });
-has dw      => ( is => 'ro', isa => Int, default => sub { 2 });
+has rw      => ( is => 'ro', isa => Int, default => sub { 2 });
 
 has socket  => (
   is => 'lazy'
@@ -34,15 +37,101 @@ has last_error => (
 );
 
 sub get {
+  my ($self, $bucket, $key) = @_;
+  
+  my $request = RpbGetReq->encode({ 
+    r => $self->r,
+    key => $key,
+    bucket => $bucket
+  });
+  
+  # perform request
+  my $request_code = 9; # request 9 => GET, response 10 => GET
+  my $message      = pack( 'c', $request_code ) . $request;
+  my $len          = bytes::length($message);
+  my $operation    = pack( 'N' , $len ) . $message;
+
+  $self->socket->syswrite($operation);
+
+  # read response
+  my $code;
+  $self->socket->sysread( $len, 4 );
+  $self->socket->sysread( $code, 1 );
+  
+  $len  = unpack( 'N', $len );
+  $code = unpack( 'c', $code );
+  
+  my $encoded_message;
+  $self->socket->sysread( $encoded_message, $len - 1 ) if $len;
+  
+  return decode_json(RpbGetResp->decode($encoded_message)->content->[0]->value) if $code == 10;
+  
   undef
 }
 
 sub put {
-  undef
+  my ($self, $bucket, $key, $value) = @_;
+  
+  my $request = RpbPutReq->encode({ 
+    key => $key,
+    bucket => $bucket,    
+    content => {
+      content_type => 'application/json',
+      value => encode_json($value)
+    },
+  });
+  
+  # perform request
+  my $request_code = 11; # request 11 => PUT, response 12 => PUT
+  my $message      = pack( 'c', $request_code ) . $request;
+  my $len          = bytes::length($message);
+  my $operation    = pack( 'N' , $len ) . $message;
+
+  $self->socket->syswrite($operation);
+
+  # read response
+  my $code;
+  $self->socket->sysread( $len, 4 );
+  $self->socket->sysread( $code, 1 );
+  
+  $len  = unpack( 'N', $len );
+  $code = unpack( 'c', $code );
+  
+  my $encoded_message;
+  $self->socket->sysread( $encoded_message, $len - 1 ) if $len;
+  
+  $code == 12
 }
 
 sub del {
-  undef
+  my ($self, $bucket, $key) = @_;
+  
+  my $request = RpbDelReq->encode({ 
+    key => $key,
+    bucket => $bucket,
+    dw => $self->rw
+  });
+  
+  # perform request
+  my $request_code = 13; # request 13 => DEL, response 14 => DEL
+  my $message      = pack( 'c', $request_code ) . $request;
+  my $len          = bytes::length($message);
+  my $operation    = pack( 'N' , $len ) . $message;
+
+  $self->socket->syswrite($operation);
+
+  # read response
+  my $code;
+  $self->socket->sysread( $len, 4 );
+  $self->socket->sysread( $code, 1 );
+  
+  $len  = unpack( 'N', $len );
+  $code = unpack( 'c', $code );
+  
+  my $encoded_message;
+  $self->socket->sysread( $encoded_message, $len - 1 ) if $len;
+  
+  $code == 14
 }
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
