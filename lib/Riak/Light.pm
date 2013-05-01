@@ -54,7 +54,9 @@ sub put {
   
   $self->clear_last_error();
     
-  my ($request, $request_code, $expected_code) = $self->_create_put_request($bucket, $key, $value);
+  my $request_code = 11;
+  my $expected_code = 12;  
+  my $request = $self->_create_put_request($bucket, $key, $value);
   my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
   
   $self->_process_error($error) if ($error);
@@ -69,7 +71,9 @@ sub del {
   
   $self->clear_last_error();
     
-  my ($request, $request_code, $expected_code) = $self->_create_del_request($bucket, $key);
+  my $request_code = 13;
+  my $expected_code = 14;  
+  my $request = $self->_create_del_request($bucket, $key);
   my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
   
   $self->_process_error($error) if ($error);
@@ -84,7 +88,9 @@ sub get {
   
   $self->clear_last_error();
   
-  my ($request, $request_code, $expected_code) = $self->_create_get_request($bucket, $key);
+  my $request_code = 9;
+  my $expected_code = 10;
+  my $request = $self->_create_get_request($bucket, $key);
   my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
   
   $self->_process_error($error) if ($error);
@@ -93,47 +99,41 @@ sub get {
   
   return $self->_process_get_response($encoded_message) if ($code == $expected_code);
   
-  undef
+  $code == $expected_code
 }
 
 
 sub _create_get_request {
   my ($self, $bucket, $key) = @_;
     
-  my $request = RpbGetReq->encode({ 
+  RpbGetReq->encode({ 
     r => $self->r,
     key => $key,
     bucket => $bucket
-  });
-  
-  ($request, 9, 10)
+  })
 }
 
 sub _create_put_request {
   my ($self, $bucket, $key, $value) = @_;
     
-  my $request = RpbPutReq->encode({ 
+  RpbPutReq->encode({ 
     key => $key,
     bucket => $bucket,    
     content => {
       content_type => 'application/json',
       value => encode_json($value)
     },
-  });  
-  
-  ($request, 11, 12)
+  })
 }
 
 sub _create_del_request {
   my ($self, $bucket, $key) = @_;
   
-  my $request = RpbDelReq->encode({ 
+  RpbDelReq->encode({ 
     key => $key,
     bucket => $bucket,
     dw => $self->rw
-  });
-  
-  ($request, 13, 14)
+  })
 }
 
 sub _process_get_response {
