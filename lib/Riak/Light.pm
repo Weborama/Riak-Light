@@ -48,44 +48,70 @@ my %decoder = (
   10 => 'RpbGetResp',
 );
 
+
+sub put {
+  my ($self, $bucket, $key, $value) = @_;
+  
+  $self->clear_last_error();
+    
+  my ($request, $request_code, $expected_code) = $self->_create_put_request($bucket, $key, $value);
+  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
+  
+  $self->_process_error($error) if ($error);
+  
+  return $self->_process_err_response($encoded_message) if ($code == 0);
+   
+  $code == $expected_code
+}
+
+sub del {
+  my ($self, $bucket, $key) = @_;
+  
+  $self->clear_last_error();
+    
+  my ($request, $request_code, $expected_code) = $self->_create_del_request($bucket, $key);
+  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
+  
+  $self->_process_error($error) if ($error);
+
+  return $self->_process_err_response($encoded_message) if ($code == 0);
+  
+  $code == $expected_code
+}
+
 sub get {
   my ($self, $bucket, $key) = @_;
   
+  $self->clear_last_error();
+  
+  my ($request, $request_code, $expected_code) = $self->_create_get_request($bucket, $key);
+  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
+  
+  $self->_process_error($error) if ($error);
+  
+  return $self->_process_err_response($encoded_message) if ($code == 0);
+  
+  return $self->_process_get_response($encoded_message) if ($code == $expected_code);
+  
+  undef
+}
+
+
+sub _create_get_request {
+  my ($self, $bucket, $key) = @_;
+    
   my $request = RpbGetReq->encode({ 
     r => $self->r,
     key => $key,
     bucket => $bucket
   });
-  my $request_code = 9;
-  my $response_code = 10;
   
-  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
-  
-  my $decoded_message;
-  
-  if( exists $decoder{$code} ){
-    $decoded_message = $decoder{$code}->decode($encoded_message);
-  }
-  
-  return decode_json($decoded_message->content->[0]->value)
-    if ! defined $error
-    and $code == $response_code
-    and $decoded_message 
-    and blessed $decoded_message
-    and defined $decoded_message->content
-    and defined $decoded_message->content->[0]
-    and defined $decoded_message->content->[0]->value;
-  
-  $self->clear_last_error();
-  $self->_set_last_error("unexpected response code") unless $code == $response_code;
-  $self->_set_last_error($error) if defined($error);
-    
-  undef
+  ($request, 9, 10)
 }
 
-sub put {
+sub _create_put_request {
   my ($self, $bucket, $key, $value) = @_;
-  
+    
   my $request = RpbPutReq->encode({ 
     key => $key,
     bucket => $bucket,    
@@ -93,16 +119,12 @@ sub put {
       content_type => 'application/json',
       value => encode_json($value)
     },
-  });
+  });  
   
-  my $request_code = 11; # request 11 => PUT, response 12 => PUT
-  
-  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
-  
-  $code == 12
+  ($request, 11, 12)
 }
 
-sub del {
+sub _create_del_request {
   my ($self, $bucket, $key) = @_;
   
   my $request = RpbDelReq->encode({ 
@@ -111,14 +133,41 @@ sub del {
     dw => $self->rw
   });
   
-  my $request_code = 13; # request 13 => DEL, response 14 => DEL
-
-  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
-  
-  $code == 14
+  ($request, 13, 14)
 }
 
+sub _process_get_response {
+  my ($self, $encoded_message) = @_;
+  
+  my $decoded_message = RpbGetResp->decode($encoded_message);
+  
+  return decode_json($decoded_message->content->[0]->value)
+    if  $decoded_message 
+    and blessed $decoded_message
+    and defined $decoded_message->content
+    and defined $decoded_message->content->[0]
+    and defined $decoded_message->content->[0]->value;
+  
+  undef
+}
 
+sub _process_err_response {
+  my ($self, $encoded_message) = @_;
+  
+  my $decoded_message = RpbErrorResp->decode($encoded_message);
+  
+  $self->_set_last_error($decoded_message->errmsg);
+  
+  undef;
+}
+
+sub _process_error {
+  my ($self, $error) = @_;
+  
+  $self->_set_last_error($error);
+  
+  undef
+}
 1;
 
 =head1 NAME
