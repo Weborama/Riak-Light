@@ -25,17 +25,13 @@ sub _build_socket {
   )
 }
 
-my %decoder = (
-  0 =>  'RpbErrorResp',
-  10 => 'RpbGetResp',
-);
-
 sub perform_request {
-  my ($self, $request_code, $request, $expected_code) = @_; 
+  my ($self, $request_code, $request) = @_; 
   
-  return (undef, "Error: $! for host @{[$self->host]}, port @{[$self->port]}") 
+  return ( -1, undef, "Error: $! for host @{[$self->host]}, port @{[$self->port]}") 
     unless( $self->socket );
   
+  my $error;
   my $message      = pack( 'c', $request_code ) . $request;
   my $operation    = pack( 'N' , bytes::length($message) ) . $message;
 
@@ -45,19 +41,8 @@ sub perform_request {
   $self->socket->sysread($buffer, 1024);
   
   my ($len, $code, $encoded_message) = unpack('N c a*', $buffer);
-  
-  my $decoded_message;
-  if( exists $decoder{$code} ){
-      $decoded_message = $decoder{$code}->decode($encoded_message);
-      
-      return (undef, $decoded_message->errmsg) if $code == 0;
-      
-      return ($decoded_message, undef)  
-  } 
 
-  return (undef, "unexpected response code") unless $code == $expected_code;
-
-  ( 1 , undef)
+  ($code, $encoded_message, $error)
 }
 
 sub _read_all {

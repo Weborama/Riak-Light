@@ -43,6 +43,11 @@ sub _build_driver {
   )
 }
 
+my %decoder = (
+  0 =>  'RpbErrorResp',
+  10 => 'RpbGetResp',
+);
+
 sub get {
   my ($self, $bucket, $key) = @_;
   
@@ -54,17 +59,25 @@ sub get {
   my $request_code = 9;
   my $response_code = 10;
   
-  my ($decoded_message, $error) = $self->driver->perform_request($request_code, $request, $response_code);
+  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
   
-  return decode_json($decoded_message->content->[0]->value) 
+  my $decoded_message;
+  
+  if( exists $decoder{$code} ){
+    $decoded_message = $decoder{$code}->decode($encoded_message);
+  }
+  
+  return decode_json($decoded_message->content->[0]->value)
     if ! defined $error
-    and  $decoded_message 
+    and $code == $response_code
+    and $decoded_message 
     and blessed $decoded_message
     and defined $decoded_message->content
     and defined $decoded_message->content->[0]
     and defined $decoded_message->content->[0]->value;
   
   $self->clear_last_error();
+  $self->_set_last_error("unexpected response code") unless $code == $response_code;
   $self->_set_last_error($error) if defined($error);
     
   undef
@@ -84,9 +97,9 @@ sub put {
   
   my $request_code = 11; # request 11 => PUT, response 12 => PUT
   
-  my ($a,$b) = $self->driver->perform_request($request_code, $request, 12);
+  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
   
-  $a
+  $code == 12
 }
 
 sub del {
@@ -100,8 +113,9 @@ sub del {
   
   my $request_code = 13; # request 13 => DEL, response 14 => DEL
 
-  my ($a,$b) = $self->driver->perform_request($request_code, $request, 14);
-  $a
+  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
+  
+  $code == 14
 }
 
 
