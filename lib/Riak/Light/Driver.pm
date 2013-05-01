@@ -41,7 +41,7 @@ my %decoder = (
   10 => 'RpbGetResp',
 );
 
-sub _perform_request {
+sub perform_request {
   my ($self, $request_code, $request, $expected_code) = @_; 
 
   my $error;
@@ -74,7 +74,7 @@ sub _perform_request {
   $ok
 }
 
-sub _perform_request_get {
+sub perform_request_get {
   my ($self, $request_code, $request, $expected_code) = @_; 
 
   my $error;

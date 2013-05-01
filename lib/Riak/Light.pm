@@ -25,12 +25,11 @@ has rw      => ( is => 'ro', isa => Int, default => sub { 2 });
 
 has driver  => (
   is => 'lazy',
-  handles => ['_perform_request', '_perform_request_get', 'last_error', 'has_last_error']
-); 
+  handles => ['last_error', 'has_last_error'],
+);
 
 sub _build_driver {
   my $self = shift;
-  
   Riak::Light::Driver->new(
     port => $self->port, 
     host => $self->host, 
@@ -48,7 +47,7 @@ sub get {
   });
   my $request_code = 9;
   
-  my $decoded_message = $self->_perform_request_get($request_code, $request, 10);
+  my $decoded_message = $self->driver->perform_request_get($request_code, $request, 10);
   
   return decode_json($decoded_message->content->[0]->value) 
     if  $decoded_message 
@@ -76,7 +75,7 @@ sub put {
   
   my $request_code = 11; # request 11 => PUT, response 12 => PUT
   
-  $self->_perform_request($request_code, $request, 12);
+  $self->driver->perform_request($request_code, $request, 12);
 }
 
 sub del {
@@ -90,7 +89,7 @@ sub del {
   
   my $request_code = 13; # request 13 => DEL, response 14 => DEL
 
-  $self->_perform_request($request_code, $request, 14);
+  $self->driver->perform_request($request_code, $request, 14);
 }
 
 
