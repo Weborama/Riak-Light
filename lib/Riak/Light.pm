@@ -101,11 +101,7 @@ sub del {
   
   my $request_code = 13; # request 13 => DEL, response 14 => DEL
 
-  my $a = $self->_perform_request($request_code, $request, 14);
-  
-  print "!!!!a=$a\n\n";
-  
-  $a
+  $self->_perform_request($request_code, $request, 14);
 }
 
 my %decoder = (

@@ -5,7 +5,21 @@ use Benchmark::Forking qw(timethis timethese cmpthese);
 use Net::Riak;
 use Riak::Light;
 
-die "please set the RIAK_PBC_HOST variable" unless $ENV{RIAK_PBC_HOST}; 
+=head1 BENCHMARK
+
+# using a local riak
+
+$ perl -I ./lib benchmarks/simple.pl
+
+                       Rate Net::Riak get/set Net::Riak only get Riak::Light get/set Riak::Light only get
+Net::Riak get/set     486/s                --               -53%                -79%                 -89%
+Net::Riak only get   1045/s              115%                 --                -54%                 -76%
+Riak::Light get/set  2262/s              365%               117%                  --                 -49%
+Riak::Light only get 4401/s              805%               321%                 95%                   --
+
+=cut
+
+die "please set the RIAK_PBC_HOST variable" unless $ENV{RIAK_PBC_HOST};
 
 my $hash = { baz => 1024, boom => [1,2,3,4,5,1000] };
 
@@ -50,17 +64,3 @@ cmpthese(25_000, {
   "Riak::Light get/set" => \&test_riak_light_getset,
   "Net::Riak get/set" => \&test_net_riak_getset
 });
-
-__END__
-
-# using a local riak
-
-$ perl -I ./lib benchmarks/simple.pl 
-
-                       Rate Net::Riak get/set Net::Riak only get Riak::Light get/set Riak::Light only get
-Net::Riak get/set     486/s                --               -53%                -79%                 -89%
-Net::Riak only get   1045/s              115%                 --                -54%                 -76%
-Riak::Light get/set  2262/s              365%               117%                  --                 -49%
-Riak::Light only get 4401/s              805%               321%                 95%                   --
-
-
