@@ -58,7 +58,7 @@ sub test_net_riak_get {
   $net_riak_bucket->get('key')->data;
 }
 
-cmpthese(25_000, {
+cmpthese(1_000, {
   "Riak::Light only get" => \&test_riak_light_get,
   "Net::Riak only get" => \&test_net_riak_get,
   "Riak::Light get/set" => \&test_riak_light_getset,

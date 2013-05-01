@@ -43,97 +43,67 @@ sub _build_driver {
   )
 }
 
-my %decoder = (
-  0 =>  'RpbErrorResp',
-  10 => 'RpbGetResp',
-);
-
+around [ qw<put del get> ] => sub {
+  my $orig = shift;
+  my $self = shift;
+    
+  $self->clear_last_error();
+    
+  my ($code, $expected_code, $encoded_message, $error) = $self->$orig(@_);
+  
+  return $self->_process_error($error) if ($error);
+  return $self->_process_err_response($encoded_message) if ($code == 0);
+  return $self->_process_get_response($encoded_message) if ($code == 10 && $code == $expected_code);
+      
+  $code == $expected_code  
+};
 
 sub put {
   my ($self, $bucket, $key, $value) = @_;
-  
-  $self->clear_last_error();
-    
+      
   my $request_code = 11;
   my $expected_code = 12;  
-  my $request = $self->_create_put_request($bucket, $key, $value);
+  my $request = RpbPutReq->encode({ 
+     key => $key,
+     bucket => $bucket,    
+     content => {
+       content_type => 'application/json',
+       value => encode_json($value)
+     },
+   });
   my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
   
-  $self->_process_error($error) if ($error);
-  
-  return $self->_process_err_response($encoded_message) if ($code == 0);
-   
-  $code == $expected_code
+  ($code, $expected_code, $encoded_message, $error)
 }
 
 sub del {
   my ($self, $bucket, $key) = @_;
-  
-  $self->clear_last_error();
     
   my $request_code = 13;
   my $expected_code = 14;  
-  my $request = $self->_create_del_request($bucket, $key);
+  my $request = RpbDelReq->encode({ 
+    key => $key,
+    bucket => $bucket,
+    dw => $self->rw
+  });
   my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
   
-  $self->_process_error($error) if ($error);
-
-  return $self->_process_err_response($encoded_message) if ($code == 0);
-  
-  $code == $expected_code
+  ($code, $expected_code, $encoded_message, $error)
 }
 
 sub get {
   my ($self, $bucket, $key) = @_;
   
-  $self->clear_last_error();
-  
   my $request_code = 9;
   my $expected_code = 10;
-  my $request = $self->_create_get_request($bucket, $key);
-  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
-  
-  $self->_process_error($error) if ($error);
-  
-  return $self->_process_err_response($encoded_message) if ($code == 0);
-  
-  return $self->_process_get_response($encoded_message) if ($code == $expected_code);
-  
-  $code == $expected_code
-}
-
-
-sub _create_get_request {
-  my ($self, $bucket, $key) = @_;
-    
-  RpbGetReq->encode({ 
+  my $request = RpbGetReq->encode({ 
     r => $self->r,
     key => $key,
     bucket => $bucket
-  })
-}
-
-sub _create_put_request {
-  my ($self, $bucket, $key, $value) = @_;
-    
-  RpbPutReq->encode({ 
-    key => $key,
-    bucket => $bucket,    
-    content => {
-      content_type => 'application/json',
-      value => encode_json($value)
-    },
-  })
-}
-
-sub _create_del_request {
-  my ($self, $bucket, $key) = @_;
+  });
+  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
   
-  RpbDelReq->encode({ 
-    key => $key,
-    bucket => $bucket,
-    dw => $self->rw
-  })
+  ($code, $expected_code, $encoded_message, $error)
 }
 
 sub _process_get_response {
