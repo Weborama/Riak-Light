@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Benchmark::Forking qw(timethis timethese cmpthese);
+use Test::More tests => 2;
 
 use Net::Riak;
 use Riak::Light;
@@ -11,24 +11,22 @@ my $hash = { baz => 1024, boom => [1,2,3,4,5,1000] };
 
 my ($host, $port) = split ':', $ENV{RIAK_PBC_HOST};
 
+#
+# prepare Riak::Light client
+#
 my $riak_light_client = Riak::Light->new(host => $host, port => $port);
-
 $riak_light_client->put(foo_riak_light => key => $hash);
+is_deeply($riak_light_client->get(foo_riak_light => 'key'), $hash);
 
+#
+# prepare Net::Riak client
+#
 my $net_riak_client = Net::Riak->new(
     transport => 'PBC',
     host => $host,
     port => $port
 );
+
 my $net_riak_bucket = $net_riak_client->bucket('foo_net_riak');
-
 $net_riak_client->bucket('foo_net_riak')->new_object(key => $hash)->store;
-
-cmpthese(1_000, {
-  "Riak::Light only get" => sub  {
-    $riak_light_client->get(foo_riak_light => 'key'),
-  },
-  "Net::Riak only get" => sub  {
-    $net_riak_bucket->get('key')->data;
-  },
-});
+is_deeply($net_riak_bucket->get('key')->data, $hash);
