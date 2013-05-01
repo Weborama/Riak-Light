@@ -40,7 +40,7 @@ SKIP: {
   
   my ($host, $port) = split ':', $ENV{RIAK_PBC_HOST};
   
-  isa_ok(Riak::Light->new(host => $host, port => $port)->socket, 'IO::Socket');
+  isa_ok(Riak::Light->new(host => $host, port => $port)->driver, 'Riak::Light::Driver');
 };
 
-ok(! Riak::Light->new(host => 'not.exist', port => 9999)->socket, 'should return undef');
+ok(! Riak::Light->new(host => 'not.exist', port => 9999)->driver->socket, 'should return undef');
