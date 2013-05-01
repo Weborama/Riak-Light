@@ -23,9 +23,15 @@ has r       => ( is => 'ro', isa => Int, default => sub { 2 });
 has w       => ( is => 'ro', isa => Int, default => sub { 2 });
 has rw      => ( is => 'ro', isa => Int, default => sub { 2 });
 
+has last_error => (
+  is => 'rwp', 
+  clearer => 1,
+  predicate => 1,
+  default => sub { undef }
+);
+
 has driver  => (
   is => 'lazy',
-  handles => ['last_error', 'has_last_error'],
 );
 
 sub _build_driver {
@@ -46,17 +52,20 @@ sub get {
     bucket => $bucket
   });
   my $request_code = 9;
+  my $response_code = 10;
   
-  my $decoded_message = $self->driver->perform_request_get($request_code, $request, 10);
+  my ($decoded_message, $error) = $self->driver->perform_request($request_code, $request, $response_code);
   
   return decode_json($decoded_message->content->[0]->value) 
-    if  $decoded_message 
+    if ! defined $error
+    and  $decoded_message 
     and blessed $decoded_message
     and defined $decoded_message->content
     and defined $decoded_message->content->[0]
     and defined $decoded_message->content->[0]->value;
   
-#  $self->clear_last_error() if $code == 10;
+  $self->clear_last_error();
+  $self->_set_last_error($error) if defined($error);
     
   undef
 }
@@ -75,7 +84,9 @@ sub put {
   
   my $request_code = 11; # request 11 => PUT, response 12 => PUT
   
-  $self->driver->perform_request($request_code, $request, 12);
+  my ($a,$b) = $self->driver->perform_request($request_code, $request, 12);
+  
+  $a
 }
 
 sub del {
@@ -89,7 +100,8 @@ sub del {
   
   my $request_code = 13; # request 13 => DEL, response 14 => DEL
 
-  $self->driver->perform_request($request_code, $request, 14);
+  my ($a,$b) = $self->driver->perform_request($request_code, $request, 14);
+  $a
 }
 
 

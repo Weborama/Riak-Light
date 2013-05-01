@@ -23,16 +23,16 @@ SKIP: {
 
   subtest "sequence of 1024 get/set" => sub {
     plan tests => 1024;
-  
+
     my ($host, $port) = split ':', $ENV{RIAK_PBC_HOST};
 
     my $client = Riak::Light->new(host => $host, port => $port);
-  
-    my $hash = { 
+
+    my $hash = {
       foo => bar => baz => 123,
       something => very => complex => [1,2,3,4,5] 
     };
-  
+
     my ($bucket, $key);      
     for(1..1024){
       ($bucket, $key) = ( "bucket" . int(rand(1024)), "key" . int(rand(1024)) );
@@ -45,6 +45,7 @@ SKIP: {
       is_deeply($got_complex_structure, $hash, "get($bucket=>$key)should got the same structure");    
     }
   };
+  
 }
 
 subtest "error handling" => sub {

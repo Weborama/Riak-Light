@@ -10,13 +10,6 @@ has port    => (is => 'ro', isa => Int,  required => 1);
 has host    => (is => 'ro', isa => Str,  required => 1);
 has timeout => (is => 'ro', isa => Num,  default  => sub { 0.5 });
 
-has last_error => (
-  is => 'rwp', 
-  clearer => 1,
-  predicate => 1,
-  default => sub { undef }
-);
-
 has socket  => (
   is => 'lazy'
 );
@@ -24,16 +17,12 @@ has socket  => (
 sub _build_socket {
   my $self = shift;
   
-  my $x = IO::Socket::INET->new(
+  IO::Socket::INET->new(
     PeerAddr => $self->host,
     PeerPort => $self->port,
     Timeout  => $self->timeout,
     Proto    => 'tcp'
-  );
-  
-  $self->_set_last_error("Error: $! for host @{[$self->host]}, port @{[$self->port]}") unless defined $x;
-  
-  $x
+  )
 }
 
 my %decoder = (
@@ -43,76 +32,32 @@ my %decoder = (
 
 sub perform_request {
   my ($self, $request_code, $request, $expected_code) = @_; 
-
-  my $error;
   
-  return 0 unless( $self->socket );
-  
-  my $message      = pack( 'c', $request_code ) . $request;
-  my $operation    = pack( 'N' , bytes::length($message) ) . $message;
-
-  $self->socket->syswrite($operation);
-  
-  my $len = $self->_read_all(4);
-
-  return 0 unless( defined $len );
-
-  $len  = unpack( 'N', $len );
-
-  my $code = $self->_read_all(1);
-
-  return 0 unless(defined $code);
-
-  $code = unpack( 'c', $code  );
-
-  my $encoded_message = $self->_read_all($len - 1);
-
-  my $ok = $code == $expected_code;
-  
-  $self->clear_last_error if $ok;
-  
-  $ok
-}
-
-sub perform_request_get {
-  my ($self, $request_code, $request, $expected_code) = @_; 
-
-  my $error;
-  
-  return 0 unless( $self->socket );
+  return (undef, "Error: $! for host @{[$self->host]}, port @{[$self->port]}") 
+    unless( $self->socket );
   
   my $message      = pack( 'c', $request_code ) . $request;
   my $operation    = pack( 'N' , bytes::length($message) ) . $message;
 
   $self->socket->syswrite($operation);
   
-  my $len = $self->_read_all(4);
+  my $buffer;
+  $self->socket->sysread($buffer, 1024);
   
-  return 0 unless( defined $len );
-    
-  $len  = unpack( 'N', $len );
-  
-  my $code = $self->_read_all(1);
-  
-  return 0 unless (defined $code);
-    
-  $code = unpack( 'c', $code  );
-  
-  my $encoded_message = $self->_read_all($len - 1);
-  
-  return 0 unless(defined $encoded_message);
-  
-  return 0 unless (exists $decoder{$code});
+  my ($len, $code, $encoded_message) = unpack('N c a*', $buffer);
   
   my $decoded_message;
   if( exists $decoder{$code} ){
       $decoded_message = $decoder{$code}->decode($encoded_message);
-      $self->_set_last_error($decoded_message) if $code == 0;
+      
+      return (undef, $decoded_message->errmsg) if $code == 0;
+      
+      return ($decoded_message, undef)  
   } 
 
-  return 0 unless $code == $expected_code;
+  return (undef, "unexpected response code") unless $code == $expected_code;
 
-  $decoded_message
+  ( 1 , undef)
 }
 
 sub _read_all {
@@ -139,7 +84,7 @@ sub _read_all {
   
   return $encoded_message unless  defined $error;
   
-  $self->_set_last_error($error) ;
+  #$self->_set_last_error($error) ;
   
   undef
 }
