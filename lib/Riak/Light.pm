@@ -8,6 +8,7 @@ use Riak::Light::PBC;
 use Riak::Light::Driver;
 use JSON;
 use Scalar::Util qw(blessed);
+use Carp;
 require bytes;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
@@ -43,68 +44,89 @@ sub _build_driver {
   )
 }
 
-around [ qw<put del get> ] => sub {
-  my $orig = shift;
-  my $self = shift;
-    
-  $self->clear_last_error();
-    
-  my ($code, $expected_code, $encoded_message, $error) = $self->$orig(@_);
-  
-  return $self->_process_error($error) if ($error);
-  return $self->_process_err_response($encoded_message) if ($code == 0);
-  return $self->_process_get_response($encoded_message) if ($code == 10 && $code == $expected_code);
-      
-  $code == $expected_code  
+before [ qw<put del get> ] => sub {  
+  $_[0]->clear_last_error();
 };
 
-sub put {
-  my ($self, $bucket, $key, $value) = @_;
-      
-  my $request_code = 11;
-  my $expected_code = 12;  
-  my $request = RpbPutReq->encode({ 
-     key => $key,
-     bucket => $bucket,    
-     content => {
-       content_type => 'application/json',
-       value => encode_json($value)
-     },
-   });
-  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
-  
-  ($code, $expected_code, $encoded_message, $error)
-}
+around '_set_last_error' => sub {
+  my $orig = shift;
+  my $self = shift;
 
-sub del {
-  my ($self, $bucket, $key) = @_;
-    
-  my $request_code = 13;
-  my $expected_code = 14;  
-  my $request = RpbDelReq->encode({ 
-    key => $key,
-    bucket => $bucket,
-    dw => $self->rw
-  });
-  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
+  my $error = $self->$orig(@_);
   
-  ($code, $expected_code, $encoded_message, $error)
-}
+  croak $error if $self->autodie;
+  
+  $error
+};
 
 sub get {
   my ($self, $bucket, $key) = @_;
   
-  my $request_code = 9;
-  my $expected_code = 10;
-  my $request = RpbGetReq->encode({ 
-    r => $self->r,
-    key => $key,
-    bucket => $bucket
-  });
-  my ($code, $encoded_message, $error) = $self->driver->perform_request($request_code, $request);
-  
-  ($code, $expected_code, $encoded_message, $error)
+  $self->_process_response(
+    $self->driver->perform_request(
+      9, 
+      RpbGetReq->encode({ 
+        r => $self->r,
+        key => $key,
+        bucket => $bucket
+      }),
+      $bucket, 
+      $key
+      )
+   )
 }
+
+sub put {
+  my ($self, $bucket, $key, $value) = @_;
+  
+  $self->_process_response(
+    $self->driver->perform_request(
+      11, 
+      RpbPutReq->encode({ 
+         key => $key,
+         bucket => $bucket,    
+         content => {
+           content_type => 'application/json',
+           value => encode_json($value)
+        },
+      }),
+    $bucket, 
+    $key
+    )
+  )
+}
+
+sub del {
+  my ($self, $bucket, $key) = @_;
+
+  $self->_process_response(
+    $self->driver->perform_request(
+      13,
+      RpbDelReq->encode({ 
+        key => $key,
+        bucket => $bucket,
+        dw => $self->rw
+      }),
+    $bucket, 
+    $key
+    )
+  )
+}
+
+sub _process_response {
+  my ($self, $code, $expected_code, $encoded_message, $error) = @_;
+ 
+  return $self->_process_error($error) if ($error);
+
+  if($code == $expected_code){
+    return ($code == 10)? $self->_process_get_response($encoded_message) : 1
+  }
+ 
+  return $self->_process_err_response($encoded_message) if ($code == 0);
+      
+  undef
+}
+
 
 sub _process_get_response {
   my ($self, $encoded_message) = @_;

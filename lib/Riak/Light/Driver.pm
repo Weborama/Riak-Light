@@ -26,9 +26,9 @@ sub _build_socket {
 }
 
 sub perform_request {
-  my ($self, $request_code, $request) = @_; 
+  my ($self, $request_code, $request, $bucket, $key) = @_; 
   
-  return ( -1, undef, "Error: $! for host @{[$self->host]}, port @{[$self->port]}") 
+  return ( undef, undef, undef, "Error: $! for host @{[$self->host]}, port @{[$self->port]}") 
     unless( $self->socket );
   
   my $error;
@@ -42,7 +42,7 @@ sub perform_request {
   
   my ($len, $code, $encoded_message) = unpack('N c a*', $buffer);
 
-  ($code, $encoded_message, $error)
+  ($code, $request_code + 1, $encoded_message, $error)
 }
 
 sub _read_all {
