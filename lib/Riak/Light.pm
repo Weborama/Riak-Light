@@ -148,9 +148,7 @@ sub _process_err_response {
   
   my $decoded_message = RpbErrorResp->decode($encoded_message);
   
-  $self->_set_last_error($decoded_message->errmsg);
-  
-  undef;
+  $self->_process_error($decoded_message->errmsg);
 }
 
 sub _process_error {
