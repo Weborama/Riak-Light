@@ -35,12 +35,17 @@ sub perform_request {
   my $message      = pack( 'c', $request_code ) . $request;
   my $operation    = pack( 'N' , bytes::length($message) ) . $message;
 
+  # TODO: check sysread/syswrite!!!
   $self->socket->syswrite($operation);
   
   my $buffer;
-  $self->socket->sysread($buffer, 1024);
+  $self->socket->sysread($buffer, 4);
   
-  my ($len, $code, $encoded_message) = unpack('N c a*', $buffer);
+  my $len = unpack('N', $buffer);
+  
+  $self->socket->sysread($buffer, $len);
+  
+  my ($code, $encoded_message) = unpack('c a*', $buffer);
 
   ($code, $request_code + 1, $encoded_message, $error)
 }
