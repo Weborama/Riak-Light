@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More tests => 8;
 use Test::Exception;
 use Riak::Light;
 
@@ -15,7 +15,6 @@ subtest "new and default attrs values" => sub {
   is($client->r,  2, "default r  should be 2");
   is($client->w,  2, "default w  should be 2");  
   is($client->rw, 2, "default rw should be 2");
-  ok(! $client->last_error, "default last_error should be undef");    
   ok(! $client->autodie, "default autodie shoudl be false");
 };
 
@@ -40,7 +39,13 @@ SKIP: {
   
   my ($host, $port) = split ':', $ENV{RIAK_PBC_HOST};
   
-  isa_ok(Riak::Light->new(host => $host, port => $port)->driver, 'Riak::Light::Driver');
+  isa_ok(Riak::Light->new(host => $host, port => $port), 'Riak::Light');
 };
 
-ok(! Riak::Light->new(host => 'not.exist', port => 9999)->driver->socket, 'should return undef');
+lives_ok { 
+  Riak::Light->new(host => 'not.exist', port => 9999)->get(foo => 'bar') 
+} "should not throw exception";
+
+dies_ok { 
+  Riak::Light->new(host => 'not.exist', port => 9999, autodie => 1 )->get(foo => 'bar') 
+} "should throw exception";

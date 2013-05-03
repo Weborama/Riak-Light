@@ -9,6 +9,7 @@ use Riak::Light::Driver;
 use JSON;
 use Scalar::Util qw(blessed);
 use Carp;
+use Params::Validate qw(validate_pos);
 require bytes;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
@@ -24,13 +25,6 @@ has r       => ( is => 'ro', isa => Int, default => sub { 2 });
 has w       => ( is => 'ro', isa => Int, default => sub { 2 });
 has rw      => ( is => 'ro', isa => Int, default => sub { 2 });
 
-has last_error => (
-  is => 'rwp', 
-  clearer => 1,
-  predicate => 1,
-  default => sub { undef }
-);
-
 has driver  => (
   is => 'lazy',
 );
@@ -45,22 +39,11 @@ sub _build_driver {
 }
 
 before [ qw<put del get> ] => sub {  
-  $_[0]->clear_last_error();
-};
-
-around '_set_last_error' => sub {
-  my $orig = shift;
-  my $self = shift;
-
-  my $error = $self->$orig(@_);
-  
-  croak $error if $self->autodie;
-  
-  $error
+  undef $@
 };
 
 sub get {
-  my ($self, $bucket, $key) = @_;
+  my ($self, $bucket, $key) = validate_pos(@_,1,1,1);
   
   $self->_process_response(
     $self->driver->perform_request(
@@ -77,7 +60,10 @@ sub get {
 }
 
 sub put {
-  my ($self, $bucket, $key, $value) = @_;
+  my ($self, $bucket, $key, $value, %opts) = validate_pos(@_, 1,1,1,1,0);
+  
+  my $content_type  = $opts{content_type} // 'application/json';
+  my $encoded_value = ($content_type eq 'application/json') ? encode_json($value) : $value;
   
   $self->_process_response(
     $self->driver->perform_request(
@@ -86,8 +72,8 @@ sub put {
          key => $key,
          bucket => $bucket,    
          content => {
-           content_type => 'application/json',
-           value => encode_json($value)
+           content_type => $content_type,
+           value => $encoded_value
         },
       }),
     $bucket, 
@@ -97,7 +83,7 @@ sub put {
 }
 
 sub del {
-  my ($self, $bucket, $key) = @_;
+  my ($self, $bucket, $key) = validate_pos(@_,1,1,1);
 
   $self->_process_response(
     $self->driver->perform_request(
@@ -133,12 +119,16 @@ sub _process_get_response {
   
   my $decoded_message = RpbGetResp->decode($encoded_message);
   
-  return decode_json($decoded_message->content->[0]->value)
-    if  $decoded_message 
+  if(  $decoded_message 
     and blessed $decoded_message
     and defined $decoded_message->content
-    and defined $decoded_message->content->[0]
-    and defined $decoded_message->content->[0]->value;
+    and defined $decoded_message->content->[0]){
+  
+    my $value        = $decoded_message->content->[0]->value;
+    my $content_type = $decoded_message->content->[0]->content_type;
+    
+    return ($content_type eq 'application/json') ? decode_json($value) : $value    
+  }
   
   undef
 }
@@ -154,7 +144,9 @@ sub _process_err_response {
 sub _process_error {
   my ($self, $error) = @_;
   
-  $self->_set_last_error($error);
+  $@ = $error; ## no critic (RequireLocalizedPunctuationVars)
+  
+  croak $error if $self->autodie;
   
   undef
 }
@@ -173,8 +165,8 @@ sub _process_error {
   );
 
   # store hashref into bucket 'foo', key 'bar'
-  $client->put( foo => bar => { baz => 1024 })
-    or die "ops... " . $client->last_error;
+  $client->put( foo => bar => { baz => 1024 }, content_type => 'application/json')
+    or confess "ops... $@";
 
   # fetch hashref from bucket 'foo', key 'bar'
   my $hash = $client->get( foo => 'bar');

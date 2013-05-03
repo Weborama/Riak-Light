@@ -18,7 +18,8 @@ SKIP: {
     is_deeply($client->get(foo => 'bar'), $hash, "should fetch the stored hashref from Riak");
     ok( $client->del(foo => 'bar')             , "should delete the hashref");
     ok(!$client->get(foo => 'bar')             , "should fetch UNDEF from Riak");
-    ok(!$client->has_last_error,               , "should has no error - foo => bar is undefined");  
+  
+    ok(!$@, "should has no error - foo => bar is undefined");  
   };
 
   subtest "sequence of 1024 get/set" => sub {
@@ -53,6 +54,6 @@ subtest "error handling" => sub {
   my $client2 = Riak::Light->new(host => 'not.exist', port => 9999);  
 
   ok(!$client2->get(foo => 'bar')             , "should return undef - it is an error");
-  ok( $client2->has_last_error,               , "should has error - could not connect");
-  is( $client2->last_error,    "Error: Invalid argument for host not.exist, port 9999");  
+  ok( $@,   "should has error - could not connect");
+  is( $@,   "Error: Invalid argument for host not.exist, port 9999");  
 };
