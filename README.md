@@ -8,6 +8,8 @@ Fast and lightweight Perl client for Riak
       host => '127.0.0.1',
       port => 8087
     );
+    
+    $client->ping() or die "ops, riak is not alive";
 
     # store hashref into bucket 'foo', key 'bar'
     # will serializer as 'application/json'
