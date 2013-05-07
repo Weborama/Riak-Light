@@ -140,7 +140,7 @@ sub _parse_response {
   my $expected_code  = $args{expected_code};
     
   my $response_code  = $response->{code} //  -1;
-  my $response_body  = $response->{body} // q();
+  my $response_body  = $response->{body};
   my $response_error = $response->{error};  
   
   # return internal error message
@@ -156,21 +156,21 @@ sub _parse_response {
     if $response_code == ERROR_RESPONSE_CODE;
     
   # return the result from fetch  
-  return $self->_process_riak_fetch($response_body)
-    if $response_code == $expected_code and $response_code == GET_RESPONSE_CODE;
+  return $self->_process_riak_fetch($response_body, $bucket, $key)
+    if $response_code == GET_RESPONSE_CODE;
     
   1  # return true value, in case of a successful put/del 
 }
 
 sub _process_riak_fetch {
-  my ($self, $encoded_message) = @_;
+  my ($self, $encoded_message, $bucket, $key) = @_;
   
+  $self->_process_generic_error("Undefined Message", 'get', $bucket, $key) 
+    unless( defined $encoded_message );
+    
   my $decoded_message = RpbGetResp->decode($encoded_message);
   
-  if(  $decoded_message 
-    and blessed $decoded_message
-    and defined $decoded_message->content
-    and defined $decoded_message->content->[0]){
+  if( defined $decoded_message and defined $decoded_message->content){
   
     my $value        = $decoded_message->content->[0]->value;
     my $content_type = $decoded_message->content->[0]->content_type;
@@ -186,17 +186,20 @@ sub _process_riak_error {
   
   my $decoded_message = RpbErrorResp->decode($encoded_message);
   
-  $self->_process_generic_error($decoded_message->errmsg, $operation, $bucket, $key);
+  my $errmsg  = $decoded_message->errmsg;
+  my $errcode = $decoded_message->errcode;
+  
+  $self->_process_generic_error("Riak Error (code: $errcode) '$errmsg'", $operation, $bucket, $key);
 }
 
 sub _process_generic_error {
   my ($self, $error, $operation, $bucket, $key) = @_;
   
-  my $extra = (defined $bucket and defined $key)
+  my $extra = ($operation ne 'ping')
     ? "(bucket: $bucket, key: $key)" 
     : q(); 
     
-  confess "Error in '$operation' $extra: $error";
+  croak "Error in '$operation' $extra: $error";
 }
 
 1;
