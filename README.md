@@ -42,3 +42,15 @@ Simple Benchmark
     Net::Riak only get   1017/s                   --                 -74%
     Riak::Light only get 3947/s                 288%                   --
   
+Features
+========
+
+* be PBC only (ok)
+* supports timeout (in progress)
+* use Moo (ok)
+* doesn't create an object per key (ok)
+* support an option to not die, but return undef (todo)
+* be optimized for speed. (in progress)
+* try to get 100% coverage. (in progress)
+* benchmark with Data::Riak, Net::Riak REST, etc... (todo)
+ 
