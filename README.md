@@ -26,23 +26,23 @@ Fast and lightweight Perl client for Riak
 
 Test Coverage
 =============
-
     ---------------------------- ------ ------ ------ ------ ------ ------ ------
     File                           stmt   bran   cond    sub    pod   time  total
     ---------------------------- ------ ------ ------ ------ ------ ------ ------
-    blib/lib/Riak/Light.pm         93.1   64.3   42.1   91.3    0.0   31.0   79.5
-    ...b/Riak/Light/Connector.pm   95.0   50.0   33.3  100.0    0.0    3.3   78.4
-    .../lib/Riak/Light/Driver.pm   96.0   50.0   33.3   88.9    0.0    2.1   79.1
-    blib/lib/Riak/Light/PBC.pm    100.0    n/a    n/a  100.0    n/a    2.3  100.0
-    .../lib/Riak/Light/Socket.pm  100.0   60.0    n/a  100.0    0.0   61.3   88.3
-    Total                          95.7   60.0   40.0   94.1    0.0  100.0   82.0
+    blib/lib/Riak/Light.pm        100.0  100.0  100.0  100.0    0.0   17.1   89.9
+    ...b/Riak/Light/Connector.pm  100.0  100.0    n/a  100.0    0.0    5.7   94.7
+    .../lib/Riak/Light/Driver.pm  100.0  100.0    n/a  100.0    0.0    8.2   94.9
+    blib/lib/Riak/Light/PBC.pm    100.0    n/a    n/a  100.0    n/a   29.5  100.0
+    .../lib/Riak/Light/Socket.pm  100.0  100.0    n/a  100.0    0.0   39.4   95.2
+    Total                         100.0  100.0  100.0  100.0    0.0  100.0   92.7
+    ---------------------------- ------ ------ ------ ------ ------ ------ ------
     
 Simple Benchmark
 ================
 
                            Rate   Net::Riak only get Riak::Light only get
-    Net::Riak only get   1017/s                   --                 -74%
-    Riak::Light only get 3947/s                 288%                   --
+    Net::Riak only get    937/s                   --                 -75%
+    Riak::Light only get 3797/s                 305%                   --
   
 Features
 ========
@@ -53,6 +53,7 @@ Features
 * doesn't create an object per key (ok)
 * support an option to not die, but return undef (todo)
 * be optimized for speed. (in progress)
-* try to get 100% coverage. (in progress)
+* try to get 100% coverage. (ok)
 * benchmark with Data::Riak, Net::Riak REST, etc... (todo)
+* documentation (in progress)
  

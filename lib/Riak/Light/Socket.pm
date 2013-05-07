@@ -7,7 +7,11 @@ use Carp;
 use Socket;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
+require bytes;
 
+{
+  bytes::length();
+}
 # ABSTRACT: socket abstraction to read/write all message
 
 has port    => (is => 'ro', isa => Int,  required => 1);
@@ -17,12 +21,13 @@ has socket  => (is => 'lazy');
 
 sub _build_socket {
   my $self= shift;
-  
+  my $host = $self->host;
+  my $port = $self->port;
   IO::Socket::INET->new(
-    PeerHost => $self->host, 
-    PeerPort => $self->port,
-    Timeout => $self->timeout,
-  ) or croak "ops $!"
+    PeerHost => $host, 
+    PeerPort => $port,
+    Timeout  => $self->timeout,
+  ) or croak "Error ($!), can't connect to $host:$port"
 }
 
 sub BUILD {

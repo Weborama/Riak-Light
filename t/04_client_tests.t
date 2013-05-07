@@ -1,10 +1,17 @@
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
 use Riak::Light::PBC;
 use JSON;
-require bytes;
+
+subtest "error handling" => sub {
+  plan tests => 1;
+  
+  dies_ok { 
+    Riak::Light->new(host => 'not.exist', port => 9999)
+  };
+};
 
 subtest "ping" => sub {
   plan tests => 4;

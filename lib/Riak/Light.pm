@@ -170,12 +170,12 @@ sub _process_riak_fetch {
     
   my $decoded_message = RpbGetResp->decode($encoded_message);
   
-  if( defined $decoded_message and defined $decoded_message->content){
-  
-    my $value        = $decoded_message->content->[0]->value;
-    my $content_type = $decoded_message->content->[0]->content_type;
-    
-    return ($content_type eq 'application/json') ? decode_json($value) : $value    
+  my $content = $decoded_message->content;
+  if (ref($content) eq 'ARRAY'){
+    my $value        = $content->[0]->value;
+    my $content_type = $content->[0]->content_type;
+
+    return ($content_type eq 'application/json') ? decode_json($value) : $value
   }
   
   undef

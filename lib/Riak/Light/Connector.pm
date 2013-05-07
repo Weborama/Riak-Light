@@ -6,6 +6,11 @@ use Riak::Light::Socket;
 
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
+require bytes;
+
+{
+  bytes::length();
+}
 
 # ABSTRACT: Riak Connector, abstraction to deal with binary messages
 
@@ -32,15 +37,19 @@ sub perform_request {
   my ($self, $message) = @_; 
   
   my $bytes = pack( 'N a*' , bytes::length($message), $message);
-  
-  my $lenght;
     
-  $self->socket->send_all($bytes)           # send request
-    and $lenght = $self->read_lenght()      # read first four bytes
-    and $self->socket->read_all($lenght)    # read the message
+  my $sended = $self->socket->send_all($bytes);          # send request
+  
+  return unless $sended;
+  
+  my $lenght = $self->_read_lenght();          # read first four bytes
+  
+  return unless $lenght;
+  
+  $self->socket->read_all($lenght);         # read the message
 }
 
-sub read_lenght {
+sub _read_lenght {
   my $self = shift;
   
   my $first_four_bytes = $self->socket->read_all(4);
