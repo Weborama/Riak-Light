@@ -8,6 +8,7 @@ use Socket;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
+# ABSTRACT: socket abstraction to read/write all message
 
 has port    => (is => 'ro', isa => Int,  required => 1);
 has host    => (is => 'ro', isa => Str,  required => 1);

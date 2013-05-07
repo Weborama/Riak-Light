@@ -40,39 +40,41 @@ sub BUILD {
 sub get {
   my ($self, $bucket, $key) = validate_pos(@_,1,1,1);
   
-  my $request  = $self->_create_fetch_request($bucket, $key);
-  my $response = $self->driver->perform_request($request);
-  $self->_parse_fetch_response($response);
+  $self->_parse_fetch_response(
+    $self->_perform_fetch_request($bucket, $key)
+  );
 }
 
 sub put {
   my ($self, $bucket, $key, $value, $content_type) = validate_pos(@_, 1,1,1,1, { default => 'application/json'});
-  my $encoded_value = ($content_type eq 'application/json') ? encode_json($value) : $value;
+ 
+  my $encoded_value = ($content_type eq 'application/json') 
+    ? encode_json($value) 
+    : $value;
   
-  my $request  = $self->_create_store_request($bucket, $key, $encoded_value, $content_type);
-  my $response = $self->driver->perform_request($request);
-  $self->_parse_store_response($response);
+  $self->_parse_store_response(
+    $self->_perform_store_request($bucket, $key, $encoded_value, $content_type)
+  );
 }
 
 sub del {
   my ($self, $bucket, $key) = validate_pos(@_,1,1,1);
   
-  my $request  = $self->_create_delete_request($bucket, $key);
-  my $response = $self->driver->perform_request($request);
-  $self->_parse_delete_response($response);
+  $self->_parse_delete_response(
+    $self->_perform_delete_request($bucket, $key)
+  );
 }
 
-sub _create_fetch_request {
+sub _perform_fetch_request {
   my ($self, $bucket, $key) = @_;
-  
-  { 
-    code => 9, 
-    body => RpbGetReq->encode({ 
+   
+  my $body = RpbGetReq->encode({ 
       r => $self->r,
       key => $key,
       bucket => $bucket
-    })
-  }
+    });
+    
+  $self->driver->perform_request(code => 9, body => $body)
 }
 
 sub _parse_fetch_response {
@@ -83,20 +85,18 @@ sub _parse_fetch_response {
   );
 }
 
-sub _create_store_request{
+sub _perform_store_request{
   my ($self, $bucket, $key, $encoded_value, $content_type) = @_;
   
-  {
-    code => 11, 
-    body => RpbPutReq->encode({ 
+  my $body = RpbPutReq->encode({ 
        key => $key,
        bucket => $bucket,    
        content => {
          content_type => $content_type,
          value => $encoded_value
       },
-    })    
-  }  
+    });   
+  $self->driver->perform_request(code => 11, body => $body);
 }
 
 sub _parse_store_response {
@@ -107,17 +107,16 @@ sub _parse_store_response {
   );
 }
 
-sub _create_delete_request {
+sub _perform_delete_request {
   my ($self, $bucket, $key) = @_;
     
- {
-   code => 13,
-   body => RpbDelReq->encode({ 
+  my $body = RpbDelReq->encode({ 
      key => $key,
      bucket => $bucket,
      dw => $self->rw
-   })
- }
+   });
+
+ $self->driver->perform_request(code => 13, body => $body);
 }
 
 sub _parse_delete_response {

@@ -7,6 +7,8 @@ use Riak::Light::Socket;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
+# ABSTRACT: Riak Connector, abstraction to deal with binary messages
+
 has port    => (is => 'ro', isa => Int,  required => 1);
 has host    => (is => 'ro', isa => Str,  required => 1);
 has timeout => (is => 'ro', isa => Num,  default  => sub { 0.5 });

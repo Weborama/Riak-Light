@@ -15,8 +15,7 @@ SKIP: {
   
     my $hash = { baz => 1024 };
   
-    ok( $client->put(foo, "bar", $hash, 'application/json')      
-      , "should store the hashref in Riak");
+    ok( $client->put(foo, "bar", $hash)        , "should store the hashref in Riak");
     is_deeply($client->get(foo => 'bar'), $hash, "should fetch the stored hashref from Riak");
     ok( $client->del(foo => 'bar')             , "should delete the hashref");
     ok(!$client->get(foo => 'bar')             , "should fetch UNDEF from Riak");

@@ -7,6 +7,8 @@ use Riak::Light::Connector;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
+# ABSTRACT: Riak Driver, deal with the binary protocol
+
 has port     => (is => 'ro', isa => Int,  required => 1);
 has host     => (is => 'ro', isa => Str,  required => 1);
 has timeout  => (is => 'ro', isa => Num,  default  => sub { 0.5 });
@@ -26,10 +28,10 @@ sub BUILD {
 }
 
 sub perform_request {
-  my ($self, $request) = @_; 
+  my ($self, %request) = @_; 
   
-  my $request_body = $request->{body};
-  my $request_code = $request->{code};
+  my $request_body = $request{body};
+  my $request_code = $request{code};
   
   my $message = pack( 'c a*', $request_code, $request_body);
   my $response;
@@ -43,13 +45,13 @@ sub parse_response {
   my ($self, $response) = @_;
   my ($code, $body) = unpack('c a*', $response);
 
-  { 
+  +{ 
     code => $code, body => $body, error => undef 
   }
 }
 
 sub parse_error {  
-  {
+  +{
     code => undef, body => undef, error => "LOL $ERRNO '$EVAL_ERROR'"  # $EVAL_ERROR
   }
 }
