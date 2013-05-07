@@ -65,6 +65,26 @@ sub del {
   );
 }
 
+sub ping {
+  my $self = shift;
+  $self->_parse_ping_response(
+    $self->_perform_ping_request()
+  )
+}
+
+sub _perform_ping_request {
+  my $self = shift;
+  $self->driver->perform_request(code => 1, body => q())
+}
+
+sub _parse_ping_response {
+  my ($self, $response) = @_;
+  $self->_parse_response(
+    expected_code => 2,    
+    response => $response
+  );
+}
+
 sub _perform_fetch_request {
   my ($self, $bucket, $key) = @_;
    
@@ -202,9 +222,10 @@ sub _process_generic_error {
     port => 8087
   );
 
+  $client->ping() or die "ops, riak is not alive";
+
   # store hashref into bucket 'foo', key 'bar'
   $client->put( foo => bar => { baz => 1024 }, content_type => 'application/json')
-    or confess "ops... $@";
 
   # fetch hashref from bucket 'foo', key 'bar'
   my $hash = $client->get( foo => 'bar');

@@ -7,7 +7,7 @@ SKIP: {
     unless $ENV{RIAK_PBC_HOST};
 
   subtest "simple get/set/delete test" => sub {
-    plan tests => 6;
+    plan tests => 7;
   
     my ($host, $port) = split ':', $ENV{RIAK_PBC_HOST};
   
@@ -15,6 +15,7 @@ SKIP: {
   
     my $hash = { baz => 1024 };
   
+    ok( $client->ping(),  "should can ping");
     ok( $client->put(foo => "bar", $hash)      , "should store the hashref in Riak");
     is_deeply($client->get(foo => 'bar'), $hash, "should fetch the stored hashref from Riak");
     ok( $client->del(foo => 'bar')             , "should delete the hashref");
