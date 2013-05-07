@@ -7,7 +7,7 @@ SKIP: {
     unless $ENV{RIAK_PBC_HOST};
 
   subtest "simple get/set/delete test" => sub {
-    plan tests => 4;
+    plan tests => 6;
   
     my ($host, $port) = split ':', $ENV{RIAK_PBC_HOST};
   
@@ -15,11 +15,13 @@ SKIP: {
   
     my $hash = { baz => 1024 };
   
-    ok( $client->put(foo, "bar", $hash)        , "should store the hashref in Riak");
+    ok( $client->put(foo => "bar", $hash)      , "should store the hashref in Riak");
     is_deeply($client->get(foo => 'bar'), $hash, "should fetch the stored hashref from Riak");
     ok( $client->del(foo => 'bar')             , "should delete the hashref");
     ok(!$client->get(foo => 'bar')             , "should fetch UNDEF from Riak");
-  
+    
+    ok( $client->put(foo => "baz", 'TEXT', 'plain/text')  , "should store the text in Riak");
+    is( $client->get(foo => "baz"), 'TEXT',               , "should fetch the text from Riak" );
     #ok(!$@, "should has no error - foo => bar is undefined");  
   };
 

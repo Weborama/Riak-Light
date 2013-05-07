@@ -24,7 +24,7 @@ my $net_riak_bucket = $net_riak_client->bucket('foo_net_riak');
 
 $net_riak_client->bucket('foo_net_riak')->new_object(key => $hash)->store;
 
-cmpthese(1_000, {
+cmpthese(3_000, {
   "Riak::Light only get" => sub  {
     $riak_light_client->get(foo_riak_light => 'key'),
   },

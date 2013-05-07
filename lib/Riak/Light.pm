@@ -53,7 +53,7 @@ sub put {
     : $value;
   
   $self->_parse_store_response(
-    $self->_perform_store_request($bucket, $key, $encoded_value, $content_type)
+    $self->_perform_store_request($bucket, $key, $content_type, $encoded_value)
   );
 }
 
@@ -86,16 +86,16 @@ sub _parse_fetch_response {
 }
 
 sub _perform_store_request{
-  my ($self, $bucket, $key, $encoded_value, $content_type) = @_;
+  my ($self, $bucket, $key, $content_type, $encoded_value) = @_;
   
   my $body = RpbPutReq->encode({ 
        key => $key,
        bucket => $bucket,    
        content => {
+         value => $encoded_value,
          content_type => $content_type,
-         value => $encoded_value
       },
-    });   
+    });
   $self->driver->perform_request(code => 11, body => $body);
 }
 
