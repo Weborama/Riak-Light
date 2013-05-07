@@ -1,120 +1,162 @@
 ## no critic (RequireUseStrict, RequireUseWarnings)
 package Riak::Light;
 ## use critic
-use Moo;
-use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
-use IO::Socket;
+
 use Riak::Light::PBC;
 use Riak::Light::Driver;
+#use v5.12.0;
 use JSON;
 use Scalar::Util qw(blessed);
 use Carp;
 use Params::Validate qw(validate_pos);
-require bytes;
+use Moo;
+use MooX::Types::MooseLike::Base qw(:all);
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
 
-# TODO: refactor based on "BUILDARGS" ?
-has port    => (is => 'ro', isa => Int,  required => 1);
-has host    => (is => 'ro', isa => Str,  required => 1);
-has timeout => (is => 'ro', isa => Num,  default  => sub { 0.5 });
+has port    => ( is => 'ro', isa => Int,  required => 1 );
+has host    => ( is => 'ro', isa => Str,  required => 1 );
+has timeout => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
+#has autodie => ( is => 'ro', isa => Bool, default  => sub {   1 } );
+has r       => ( is => 'ro', isa => Int,  default  => sub {   2 } );
+has w       => ( is => 'ro', isa => Int,  default  => sub {   2 } );
+has rw      => ( is => 'ro', isa => Int,  default  => sub {   2 } );
 
-has autodie => (is => 'ro', isa => Bool, default  => sub { 0 });
-
-has r       => ( is => 'ro', isa => Int, default => sub { 2 });
-has w       => ( is => 'ro', isa => Int, default => sub { 2 });
-has rw      => ( is => 'ro', isa => Int, default => sub { 2 });
-
-has driver  => (
-  is => 'lazy',
-);
+has driver  => ( is => 'lazy' );
 
 sub _build_driver {
   my $self = shift;
   Riak::Light::Driver->new(
-    port => $self->port, 
-    host => $self->host, 
+    port    => $self->port, 
+    host    => $self->host, 
     timeout => $self->timeout
   )
 }
 
-before [ qw<put del get> ] => sub {  
-  undef $@
-};
+sub BUILD {
+  (shift)->driver
+}
 
 sub get {
   my ($self, $bucket, $key) = validate_pos(@_,1,1,1);
   
-  $self->_process_response(
-    $self->driver->perform_request(
-      9, 
-      RpbGetReq->encode({ 
-        r => $self->r,
-        key => $key,
-        bucket => $bucket
-      }),
-      $bucket, 
-      $key
-      )
-   )
+  my $request  = $self->_create_fetch_request($bucket, $key);
+  my $response = $self->driver->perform_request($request);
+  $self->_parse_fetch_response($response);
 }
 
 sub put {
-  my ($self, $bucket, $key, $value, %opts) = validate_pos(@_, 1,1,1,1,0);
-  
-  my $content_type  = $opts{content_type} // 'application/json';
+  my ($self, $bucket, $key, $value, $content_type) = validate_pos(@_, 1,1,1,1, { default => 'application/json'});
   my $encoded_value = ($content_type eq 'application/json') ? encode_json($value) : $value;
   
-  $self->_process_response(
-    $self->driver->perform_request(
-      11, 
-      RpbPutReq->encode({ 
-         key => $key,
-         bucket => $bucket,    
-         content => {
-           content_type => $content_type,
-           value => $encoded_value
-        },
-      }),
-    $bucket, 
-    $key
-    )
-  )
+  my $request  = $self->_create_store_request($bucket, $key, $encoded_value, $content_type);
+  my $response = $self->driver->perform_request($request);
+  $self->_parse_store_response($response);
 }
 
 sub del {
   my ($self, $bucket, $key) = validate_pos(@_,1,1,1);
-
-  $self->_process_response(
-    $self->driver->perform_request(
-      13,
-      RpbDelReq->encode({ 
-        key => $key,
-        bucket => $bucket,
-        dw => $self->rw
-      }),
-    $bucket, 
-    $key
-    )
-  )
+  
+  my $request  = $self->_create_delete_request($bucket, $key);
+  my $response = $self->driver->perform_request($request);
+  $self->_parse_delete_response($response);
 }
 
-sub _process_response {
-  my ($self, $code, $expected_code, $encoded_message, $error) = @_;
- 
-  return $self->_process_error($error) if ($error);
-
-  if($code == $expected_code){
-    return ($code == 10)? $self->_process_get_response($encoded_message) : 1
+sub _create_fetch_request {
+  my ($self, $bucket, $key) = @_;
+  
+  { 
+    code => 9, 
+    body => RpbGetReq->encode({ 
+      r => $self->r,
+      key => $key,
+      bucket => $bucket
+    })
   }
- 
-  return $self->_process_err_response($encoded_message) if ($code == 0);
-      
-  undef
 }
 
+sub _parse_fetch_response {
+  my ($self, $response) = @_;
+  $self->_parse_response(
+    expected_code => 10,    
+    response => $response
+  );
+}
 
-sub _process_get_response {
+sub _create_store_request{
+  my ($self, $bucket, $key, $encoded_value, $content_type) = @_;
+  
+  {
+    code => 11, 
+    body => RpbPutReq->encode({ 
+       key => $key,
+       bucket => $bucket,    
+       content => {
+         content_type => $content_type,
+         value => $encoded_value
+      },
+    })    
+  }  
+}
+
+sub _parse_store_response {
+  my ($self, $response) = @_;
+  $self->_parse_response(
+    expected_code => 12,    
+    response => $response
+  );
+}
+
+sub _create_delete_request {
+  my ($self, $bucket, $key) = @_;
+    
+ {
+   code => 13,
+   body => RpbDelReq->encode({ 
+     key => $key,
+     bucket => $bucket,
+     dw => $self->rw
+   })
+ }
+}
+
+sub _parse_delete_response {
+  my ($self, $response) = @_;
+  $self->_parse_response(
+    expected_code => 14,    
+    response => $response
+  );
+}
+
+sub _parse_response {
+  my ($self, %args)  = @_;
+  my $response       = $args{response};
+  my $expected_code  = $args{expected_code};
+    
+  my $response_code  = $response->{code} //  -1;
+  my $response_body  = $response->{body} // q();
+  my $response_error = $response->{error};  
+  
+  # return internal error message
+  return $self->_process_generic_error($response_error) 
+    if defined $response_error;
+  
+  # return default message
+  return $self->_process_generic_error("Unexpected Response Code (got: $response_code, expected: $expected_code)") 
+    if $response_code != $expected_code and $response_code != 0;
+  
+  # return the error msg
+  return $self->_process_riak_error($response_body) 
+    if $response_code == 0;
+    
+  # return the result from fetch  
+  return $self->_process_riak_fetch($response_body)
+    if $response_code == $expected_code and $response_code == 10;
+    
+  1  # return true value, in case of a successful put/del 
+}
+
+sub _process_riak_fetch {
   my ($self, $encoded_message) = @_;
   
   my $decoded_message = RpbGetResp->decode($encoded_message);
@@ -133,7 +175,7 @@ sub _process_get_response {
   undef
 }
 
-sub _process_err_response {
+sub _process_riak_error {
   my ($self, $encoded_message) = @_;
   
   my $decoded_message = RpbErrorResp->decode($encoded_message);
@@ -141,15 +183,12 @@ sub _process_err_response {
   $self->_process_error($decoded_message->errmsg);
 }
 
-sub _process_error {
+sub _process_generic_error {
   my ($self, $error) = @_;
-  
-  $@ = $error; ## no critic (RequireLocalizedPunctuationVars)
-  
-  croak $error if $self->autodie;
-  
-  undef
+    
+  confess $error
 }
+
 1;
 
 =head1 NAME

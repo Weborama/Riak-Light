@@ -1,4 +1,5 @@
 use Test::More tests => 3;
+use Test::Exception;
 use Riak::Light;
 
 SKIP: {
@@ -6,7 +7,7 @@ SKIP: {
     unless $ENV{RIAK_PBC_HOST};
 
   subtest "simple get/set/delete test" => sub {
-    plan tests => 5;
+    plan tests => 4;
   
     my ($host, $port) = split ':', $ENV{RIAK_PBC_HOST};
   
@@ -14,12 +15,13 @@ SKIP: {
   
     my $hash = { baz => 1024 };
   
-    ok( $client->put(foo => "bar", $hash)      , "should store the hashref in Riak");
+    ok( $client->put(foo, "bar", $hash, 'application/json')      
+      , "should store the hashref in Riak");
     is_deeply($client->get(foo => 'bar'), $hash, "should fetch the stored hashref from Riak");
     ok( $client->del(foo => 'bar')             , "should delete the hashref");
     ok(!$client->get(foo => 'bar')             , "should fetch UNDEF from Riak");
   
-    ok(!$@, "should has no error - foo => bar is undefined");  
+    #ok(!$@, "should has no error - foo => bar is undefined");  
   };
 
   subtest "sequence of 1024 get/set" => sub {
@@ -50,10 +52,9 @@ SKIP: {
 }
 
 subtest "error handling" => sub {
-  plan tests => 3;
-  my $client2 = Riak::Light->new(host => 'not.exist', port => 9999);  
-
-  ok(!$client2->get(foo => 'bar')             , "should return undef - it is an error");
-  ok( $@,   "should has error - could not connect");
-  is( $@,   "Error: Invalid argument for host not.exist, port 9999");  
+  plan tests => 1;
+  
+  dies_ok { 
+    Riak::Light->new(host => 'not.exist', port => 9999)
+  };
 };
