@@ -2,6 +2,9 @@
 package Riak::Light::Socket;
 ## use critic
 
+use Riak::Light::Timeout;
+use Riak::Light::Timeout::Select;
+use Riak::Light::Timeout::NoTimeout;
 use IO::Socket;
 use Carp;
 use Socket;
@@ -14,10 +17,13 @@ require bytes;
 }
 # ABSTRACT: socket abstraction to read/write all message
 
-has port    => (is => 'ro', isa => Int,  required => 1);
-has host    => (is => 'ro', isa => Str,  required => 1);
-has timeout => (is => 'ro', isa => Num,  default  => sub { 0.5 });
-has socket  => (is => 'lazy');
+has port        => ( is => 'ro', isa => Int,  required => 1 );
+has host        => ( is => 'ro', isa => Str,  required => 1 );
+has timeout     => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
+has in_timeout  => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
+has out_timeout => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
+
+has socket  => ( is => 'lazy');
 
 sub _build_socket {
   my $self= shift;
@@ -30,8 +36,22 @@ sub _build_socket {
   ) or croak "Error ($!), can't connect to $host:$port"
 }
 
+has timeout_provider => ( is => 'lazy');
+
+sub _build_timeout_provider { 
+  my $self = shift;
+  
+  Riak::Light::Timeout::NoTimeout->new(
+    socket      => $self->socket,
+    in_timeout  => $self->in_timeout, 
+    out_timeout => $self->out_timeout
+  ); 
+}
+
 sub BUILD {
-  (shift)->socket();
+  my $self = shift;
+  $self->socket;
+  $self->timeout_provider();
 }
 
 sub send_all {
@@ -41,7 +61,7 @@ sub send_all {
   my $offset = 0;
   my $sended = 0;
   do {
-    $sended = $self->socket->syswrite($bytes, $length, $offset);
+    $sended = $self->timeout_provider->perform_syswrite($bytes, $length, $offset);
     
     # error in $!
     return unless defined $sended;
@@ -62,7 +82,7 @@ sub read_all {
   my $offset = 0;
   my $readed = 0;
   do {
-    $readed = $self->socket->sysread($buffer, $bufsiz, $offset);
+    $readed = $self->timeout_provider->perform_sysread($buffer, $bufsiz, $offset);
     # error in $!
     return unless defined $readed;
     

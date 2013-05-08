@@ -14,18 +14,22 @@ require bytes;
 
 # ABSTRACT: Riak Connector, abstraction to deal with binary messages
 
-has port    => (is => 'ro', isa => Int,  required => 1);
-has host    => (is => 'ro', isa => Str,  required => 1);
-has timeout => (is => 'ro', isa => Num,  default  => sub { 0.5 });
+has port        => ( is => 'ro', isa => Int,  required => 1 );
+has host        => ( is => 'ro', isa => Str,  required => 1 );
+has timeout     => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
+has in_timeout  => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
+has out_timeout => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
 
-has socket  => (is => 'lazy');
+has socket      => ( is => 'lazy' );
 
 sub _build_socket {
   my $self= shift;
   Riak::Light::Socket->new(
-    host => $self->host, 
-    port => $self->port,
-    timeout => $self->timeout
+    host        => $self->host, 
+    port        => $self->port,
+    timeout     => $self->timeout,
+    in_timeout  => $self->in_timeout,
+    out_timeout => $self->out_timeout,
   );
 }
 

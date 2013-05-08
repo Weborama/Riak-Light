@@ -9,13 +9,27 @@ use Scalar::Util qw(blessed);
 use Carp;
 use Params::Validate qw(validate_pos);
 use Moo;
-use MooX::Types::MooseLike::Base qw(:all);
+use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
 
 has port    => ( is => 'ro', isa => Int,  required => 1 );
 has host    => ( is => 'ro', isa => Str,  required => 1 );
 has timeout => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
+
+has in_timeout  => ( is => 'lazy', isa => Num );
+has out_timeout => ( is => 'lazy', isa => Num );
+
+sub _build_in_timeout {
+  my $self = shift;
+  $self->timeout
+}
+
+sub _build_out_timeout {
+  my $self = shift;
+  $self->timeout
+}
+
 has autodie => ( is => 'ro', isa => Bool, default  => sub {   1 } );
 has r       => ( is => 'ro', isa => Int,  default  => sub {   2 } );
 has w       => ( is => 'ro', isa => Int,  default  => sub {   2 } );
@@ -26,9 +40,11 @@ has driver  => ( is => 'lazy' );
 sub _build_driver {
   my $self = shift;
   Riak::Light::Driver->new(
-    port    => $self->port, 
-    host    => $self->host, 
-    timeout => $self->timeout
+    port        => $self->port, 
+    host        => $self->host, 
+    timeout     => $self->timeout,
+    in_timeout  => $self->in_timeout,
+    out_timeout => $self->out_timeout,
   )
 }
 
@@ -55,6 +71,10 @@ sub PUT_REQUEST_CODE    { 11 }
 sub PUT_RESPONSE_CODE   { 12 }
 sub DEL_REQUEST_CODE    { 13 }
 sub DEL_RESPONSE_CODE   { 14 }
+ 
+before [ qw(ping get put del) ] => sub {
+  undef $@ ## no critic (RequireLocalizedPunctuationVars)
+};
  
 sub ping {
   my $self = shift;
@@ -199,7 +219,12 @@ sub _process_generic_error {
     ? "(bucket: $bucket, key: $key)" 
     : q(); 
     
-  croak "Error in '$operation' $extra: $error";
+  my $error_message = "Error in '$operation' $extra: $error";  
+  croak $error_message if $self->autodie;
+  
+  $@ = $error_message; ## no critic (RequireLocalizedPunctuationVars)
+  
+  undef
 }
 
 1;
