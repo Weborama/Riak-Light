@@ -44,20 +44,14 @@ Test Coverage
 Simple Benchmark
 ================
 
-                         Rate Net::Riak only get Riak::Light 2 Riak::Light 3 Riak::Light 5 Riak::Light 4 Riak::Light 1
-    Net::Riak only get  993/s                 --          -59%          -67%          -68%          -69%          -73%
-    Riak::Light 2      2395/s               141%            --          -19%          -24%          -26%          -35%
-    Riak::Light 3      2963/s               199%           24%            --           -6%           -8%          -20%
-    Riak::Light 5      3150/s               217%           31%            6%            --           -2%          -15%
-    Riak::Light 4      3226/s               225%           35%            9%            2%            --          -13%
-    Riak::Light 1      3704/s               273%           55%           25%           18%           15%            --
-    ------------------------------------------------------------------------------------------------------------------
-    Riak::Light 1 - (DEFAULT) uses nothing to set timeout in input/output operations (like Net::Riak)
-    Riak::Light 2 - uses Time::Out in input/output operations
-    Riak::Light 3 - uses IO::Select in input/output operations
-    Riak::Light 4 - uses IO::Select in input operations
-    Riak::Light 5 - a simple wrap in (1) using Time::Out::timeout 0.5 => sub { $client->get(...) }    
-  
+                              Rate Data::Riak (REST) Net::Riak (REST) Riak::Tiny (REST) Data::Riak::Fast (REST) Net::Riak (PBC) Riak::Light (PBC)
+    Data::Riak (REST)        304/s                --             -30%              -38%                    -39%            -64%              -91%
+    Net::Riak (REST)         433/s               43%               --              -12%                    -12%            -48%              -87%
+    Riak::Tiny (REST)        494/s               63%              14%                --                     -0%            -41%              -85%
+    Data::Riak::Fast (REST)  495/s               63%              14%                0%                      --            -41%              -85%
+    Net::Riak (PBC)          837/s              176%              93%               69%                     69%              --              -75%
+    Riak::Light (PBC)       3306/s              988%             663%              569%                    568%            295%                --
+
 Features
 ========
 
