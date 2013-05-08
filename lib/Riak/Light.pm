@@ -4,48 +4,66 @@ package Riak::Light;
 
 use Riak::Light::PBC;
 use Riak::Light::Driver;
-use JSON;
-use Scalar::Util qw(blessed);
-use Carp;
 use Params::Validate qw(validate_pos);
+use Scalar::Util qw(blessed);
+use IO::Socket;
+#use IO::Socket::INET;
+use JSON;
+use Carp;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
 
-has port    => ( is => 'ro', isa => Int,  required => 1 );
-has host    => ( is => 'ro', isa => Str,  required => 1 );
-has timeout => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
+has port        => ( is => 'ro', isa => Int,  required => 1 );
+has host        => ( is => 'ro', isa => Str,  required => 1 );
+has r           => ( is => 'ro', isa => Int,  default  => sub {   2 } );
+has w           => ( is => 'ro', isa => Int,  default  => sub {   2 } );
+has rw          => ( is => 'ro', isa => Int,  default  => sub {   2 } );
+has autodie     => ( is => 'ro', isa => Bool, default  => sub {   1 } );
+has timeout     => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
+has in_timeout  => ( is => 'ro', predicate => 1 );
+has out_timeout => ( is => 'ro', predicate => 1 );
 
-has in_timeout  => ( is => 'lazy', isa => Num );
-has out_timeout => ( is => 'lazy', isa => Num );
+has timeout_provider => (is => 'ro', isa => Str, default => sub { 'IO::Socket::INET' });
 
-sub _build_in_timeout {
-  my $self = shift;
-  $self->timeout
-}
-
-sub _build_out_timeout {
-  my $self = shift;
-  $self->timeout
-}
-
-has autodie => ( is => 'ro', isa => Bool, default  => sub {   1 } );
-has r       => ( is => 'ro', isa => Int,  default  => sub {   2 } );
-has w       => ( is => 'ro', isa => Int,  default  => sub {   2 } );
-has rw      => ( is => 'ro', isa => Int,  default  => sub {   2 } );
-
-has driver  => ( is => 'lazy' );
+has driver      => ( is => 'lazy' );
 
 sub _build_driver {
   my $self = shift;
+  
   Riak::Light::Driver->new(
-    port        => $self->port, 
-    host        => $self->host, 
-    timeout     => $self->timeout,
-    in_timeout  => $self->in_timeout,
-    out_timeout => $self->out_timeout,
+    socket => $self->_build_socket()
   )
+}
+
+sub _build_socket {
+  my $self= shift;
+  
+  my $host = $self->host;
+  my $port = $self->port;
+  
+  my $socket = IO::Socket::INET->new(
+    PeerHost => $host, 
+    PeerPort => $port,
+    Timeout  => $self->timeout,
+  ); 
+
+  croak "Error ($!), can't connect to $host:$port"
+    unless defined $socket;
+
+  return $socket 
+    if $socket->isa($self->timeout_provider);
+
+  use Module::Load;
+  load $self->timeout_provider; 
+
+  # TODO: add a easy way to inject this proxy
+  $self->timeout_provider->new(
+    socket      => $socket,
+    in_timeout  => ( $self->has_in_timeout  )? $self->in_timeout  : $self->timeout, 
+    out_timeout => ( $self->has_out_timeout )? $self->out_timeout : $self->timeout,
+   )
 }
 
 sub BUILD {
@@ -164,7 +182,8 @@ sub _parse_response {
   my $response_error = $response->{error};  
   
   # return internal error message
-  return $self->_process_generic_error($response_error, $operation, $bucket, $key) 
+  use Data::Dumper;
+  return $self->_process_generic_error($response_error . Dumper($response), $operation, $bucket, $key) 
     if defined $response_error;
   
   # return default message
@@ -220,7 +239,7 @@ sub _process_generic_error {
     : q(); 
     
   my $error_message = "Error in '$operation' $extra: $error";  
-  croak $error_message if $self->autodie;
+  confess $error_message if $self->autodie;
   
   $@ = $error_message; ## no critic (RequireLocalizedPunctuationVars)
   

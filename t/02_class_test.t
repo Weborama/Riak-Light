@@ -9,7 +9,7 @@ dies_ok { Riak::Light->new(port => 8087) } "should ask for host";
 subtest "new and default attrs values" => sub {
   my $client = new_ok('Riak::Light' => [ 
     host => '127.0.0.1', 
-    port => 8087,
+    port => 9087,
     autodie => 0,
     driver => undef
   ], "a new client");
@@ -23,10 +23,13 @@ subtest "new and default attrs values" => sub {
 subtest "new and other attrs values" => sub {
   my $client = new_ok('Riak::Light' => [ 
     host => '127.0.0.1', 
-    port => 8087, 
+    port => 9087, 
     timeout => 0.2, 
     autodie => 1,
-    r => 1, w => 1, rw => 1, driver => undef
+    r => 1, 
+    w => 1, 
+    rw => 1, 
+    driver => undef
   ], "a new client");
   is($client->timeout, 0.2, "timeout should be 0.2");
   is($client->r,  1, "r  should be 1");
@@ -41,5 +44,5 @@ SKIP: {
   
   my ($host, $port) = split ':', $ENV{RIAK_PBC_HOST};
   
-  isa_ok(Riak::Light->new(host => $host, port => $port), 'Riak::Light');
+  isa_ok(Riak::Light->new(host => $host, port => $port, driver => undef), 'Riak::Light');
 };

@@ -9,26 +9,22 @@ use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
 # ABSTRACT: Riak Driver, deal with the binary protocol
 
-has port        => ( is => 'ro', isa => Int,  required => 1 );
-has host        => ( is => 'ro', isa => Str,  required => 1 );
-has timeout     => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
-has in_timeout  => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
-has out_timeout => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
-has connector   => ( is => 'lazy' );
+has connector   => ( is => 'ro', required => 1 );
 
-sub _build_connector {
-  my $self= shift;
-  Riak::Light::Connector->new(
-    host        => $self->host,
-    port        => $self->port,
-    timeout     => $self->timeout,
-    in_timeout  => $self->in_timeout,
-    out_timeout => $self->out_timeout,    
-  )
-}
+sub BUILDARGS {
+  my ($class, %args) = @_;
+  
+  return +{ %args } if exists $args{connector};
 
-sub BUILD {
-  (shift)->connector
+  if (exists $args{socket}) {
+    my $connector = Riak::Light::Connector->new(
+      socket => $args{socket}
+    );
+    
+    $args{connector} = $connector;
+  }
+  
+  +{ %args }
 }
 
 sub perform_request {

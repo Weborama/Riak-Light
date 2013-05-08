@@ -1,5 +1,5 @@
 ## no critic (RequireUseStrict, RequireUseWarnings)
-package Riak::Light::Timeout::Select;
+package Riak::Light::Timeout::SelectOnRead;
 ## use critic
 
 use POSIX qw(ETIMEDOUT ECONNRESET);
@@ -10,7 +10,7 @@ use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
 with 'Riak::Light::Timeout';
 
-# ABSTRACT: proxy to read/write using IO::Select as a timeout provider
+# ABSTRACT: proxy to read/write using IO::Select as a timeout provider only for READ operations
 
 has socket      => ( is => 'ro', required => 1 );
 has in_timeout  => ( is => 'ro', isa => Num,  default  => sub { 0.5 } );
@@ -58,18 +58,7 @@ sub sysread {
 sub syswrite {
   my $self = shift;
   
-  if (! $self->is_valid) {
-    $! = ECONNRESET; ## no critic (RequireLocalizedPunctuationVars)
-    return
-  }
-  
-  return $self->socket->syswrite(@_) 
-    if $self->select->can_write($self->out_timeout); 
-  
-  $self->clean();
-  $! = ETIMEDOUT;  ## no critic (RequireLocalizedPunctuationVars)
-  
-  undef
+  $self->socket->syswrite(@_) 
 }
 
 1;

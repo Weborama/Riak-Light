@@ -8,7 +8,7 @@ subtest "should call perform_request and return a valid value" => sub {
   plan tests => 1;
   my $mock   = Test::MockObject->new;
           
-  my $driver = Riak::Light::Driver->new(host => 'host', port => 1234, connector => $mock);
+  my $driver = Riak::Light::Driver->new(connector => $mock);
   
   $mock->mock(perform_request => sub{ pack('c a*', 2, q(lol))});
   
@@ -19,7 +19,7 @@ subtest "should call perform_request and return a valid value" => sub {
   plan tests => 1;
   my $mock   = Test::MockObject->new;
           
-  my $driver = Riak::Light::Driver->new(host => 'host', port => 1234, connector => $mock);
+  my $driver = Riak::Light::Driver->new(connector => $mock);
   
   $mock->set_always(perform_request => undef);
   $!= ETIMEDOUT;

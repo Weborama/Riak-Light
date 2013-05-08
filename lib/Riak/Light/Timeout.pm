@@ -4,7 +4,9 @@ package Riak::Light::Timeout;
 
 use Moo::Role;
 
-requires 'perform_sysread';
-requires 'perform_syswrite';
+# ABSTRACT: socket interface to add timeout in in/out operations
+
+requires 'sysread';
+requires 'syswrite';
 
 1;
