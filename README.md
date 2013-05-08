@@ -44,6 +44,8 @@ Test Coverage
 Simple Benchmark
 ================
 
+Only GET
+
                               Rate Data::Riak (REST) Net::Riak (REST) Riak::Tiny (REST) Data::Riak::Fast (REST) Net::Riak (PBC) Riak::Light (PBC)
     Data::Riak (REST)        304/s                --             -30%              -38%                    -39%            -64%              -91%
     Net::Riak (REST)         433/s               43%               --              -12%                    -12%            -48%              -87%
@@ -51,6 +53,16 @@ Simple Benchmark
     Data::Riak::Fast (REST)  495/s               63%              14%                0%                      --            -41%              -85%
     Net::Riak (PBC)          837/s              176%              93%               69%                     69%              --              -75%
     Riak::Light (PBC)       3306/s              988%             663%              569%                    568%            295%                --
+
+Only PUT
+
+                              Rate Net::Riak (REST) Data::Riak (REST) Riak::Tiny (REST) Net::Riak (PBC) Data::Riak::Fast (REST) Riak::Light (PBC)
+    Net::Riak (REST)         389/s               --              -16%              -26%            -57%                    -59%              -89%
+    Data::Riak (REST)        462/s              19%                --              -13%            -48%                    -51%              -87%
+    Riak::Tiny (REST)        528/s              36%               14%                --            -41%                    -44%              -85%
+    Net::Riak (PBC)          897/s             131%               94%               70%              --                     -5%              -75%
+    Data::Riak::Fast (REST)  943/s             143%              104%               79%              5%                      --              -74%
+    Riak::Light (PBC)       3604/s             827%              680%              582%            302%                    282%                --
 
 Features
 ========
