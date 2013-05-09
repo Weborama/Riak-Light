@@ -7,12 +7,12 @@ use Riak::Light::Driver;
 use Params::Validate qw(validate_pos);
 use Scalar::Util qw(blessed);
 use IO::Socket;
-
-#use IO::Socket::INET;
+use Const::Fast;
 use JSON;
 use Carp;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
+use namespace::autoclean;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
 
@@ -72,24 +72,26 @@ sub BUILD {
     (shift)->driver;
 }
 
+const my $ERROR_RESPONSE_CODE =>  0;
+const my $PING_REQUEST_CODE   =>  1;
+const my $PING_RESPONSE_CODE  =>  2;
+const my $GET_REQUEST_CODE    =>  9;
+const my $GET_RESPONSE_CODE   => 10;
+const my $PUT_REQUEST_CODE    => 11;
+const my $PUT_RESPONSE_CODE   => 12;
+const my $DEL_REQUEST_CODE    => 13;
+const my $DEL_RESPONSE_CODE   => 14;
+
 sub REQUEST_OPERATION {
     my $code = shift;
-    {   1  => "ping",
-        9  => "get",
-        11 => "put",
-        13 => "del",
+    
+    return {   
+      $PING_REQUEST_CODE => "ping",
+      $GET_REQUEST_CODE  => "get",
+      $PUT_REQUEST_CODE  => "put",
+      $DEL_REQUEST_CODE  => "del",
     }->{$code};
 }
-
-sub ERROR_RESPONSE_CODE {0}
-sub PING_REQUEST_CODE   {1}
-sub PING_RESPONSE_CODE  {2}
-sub GET_REQUEST_CODE    {9}
-sub GET_RESPONSE_CODE   {10}
-sub PUT_REQUEST_CODE    {11}
-sub PUT_RESPONSE_CODE   {12}
-sub DEL_REQUEST_CODE    {13}
-sub DEL_RESPONSE_CODE   {14}
 
 before [qw(ping get put del)] => sub {
     undef $@    ## no critic (RequireLocalizedPunctuationVars)
@@ -98,9 +100,9 @@ before [qw(ping get put del)] => sub {
 sub ping {
     my $self = shift;
     $self->_parse_response(
-        code          => PING_REQUEST_CODE,
+        code          => $PING_REQUEST_CODE,
         body          => q(),
-        expected_code => PING_RESPONSE_CODE,
+        expected_code => $PING_RESPONSE_CODE,
     );
 }
 
@@ -118,9 +120,9 @@ sub get {
     $self->_parse_response(
         key           => $key,
         bucket        => $bucket,
-        code          => GET_REQUEST_CODE,
+        code          => $GET_REQUEST_CODE,
         body          => $body,
-        expected_code => GET_RESPONSE_CODE,
+        expected_code => $GET_RESPONSE_CODE,
     );
 }
 
@@ -146,9 +148,9 @@ sub put {
     $self->_parse_response(
         key           => $key,
         bucket        => $bucket,
-        code          => PUT_REQUEST_CODE,
+        code          => $PUT_REQUEST_CODE,
         body          => $body,
-        expected_code => PUT_RESPONSE_CODE
+        expected_code => $PUT_RESPONSE_CODE
     );
 }
 
@@ -165,9 +167,9 @@ sub del {
     $self->_parse_response(
         key           => $key,
         bucket        => $bucket,
-        code          => DEL_REQUEST_CODE,
+        code          => $DEL_REQUEST_CODE,
         body          => $body,
-        expected_code => DEL_RESPONSE_CODE,
+        expected_code => $DEL_RESPONSE_CODE,
     );
 }
 
@@ -198,16 +200,16 @@ sub _parse_response {
         "Unexpected Response Code in (got: $response_code, expected: $expected_code)",
         $operation, $bucket, $key )
       if $response_code != $expected_code
-          and $response_code != ERROR_RESPONSE_CODE;
+          and $response_code != $ERROR_RESPONSE_CODE;
 
     # return the error msg
     return $self->_process_riak_error( $response_body, $operation, $bucket,
         $key )
-      if $response_code == ERROR_RESPONSE_CODE;
+      if $response_code == $ERROR_RESPONSE_CODE;
 
     # return the result from fetch
     return $self->_process_riak_fetch( $response_body, $bucket, $key )
-      if $response_code == GET_RESPONSE_CODE;
+      if $response_code == $GET_RESPONSE_CODE;
 
     1    # return true value, in case of a successful put/del
 }

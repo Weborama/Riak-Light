@@ -303,5 +303,39 @@ use Google::ProtocolBuffers;
         );
     }
 
+    unless (RpbListKeysReq->can('_pb_fields_list')) {
+            Google::ProtocolBuffers->create_message(
+                'RpbListKeysReq',
+                [
+                    [
+                        Google::ProtocolBuffers::Constants::LABEL_REQUIRED(), 
+                        Google::ProtocolBuffers::Constants::TYPE_BYTES(), 
+                        'bucket', 1, undef
+                    ],
+
+                ],
+                { 'create_accessors' => 1,  }
+            );
+        }
+        
+        unless (RpbListKeysResp->can('_pb_fields_list')) {
+            Google::ProtocolBuffers->create_message(
+                'RpbListKeysResp',
+                [
+                    [
+                        Google::ProtocolBuffers::Constants::LABEL_REPEATED(), 
+                        Google::ProtocolBuffers::Constants::TYPE_BYTES(), 
+                        'keys', 1, undef
+                    ],
+                    [
+                        Google::ProtocolBuffers::Constants::LABEL_OPTIONAL(), 
+                        Google::ProtocolBuffers::Constants::TYPE_BOOL(), 
+                        'done', 2, undef
+                    ],
+
+                ],
+                { 'create_accessors' => 1,  }
+            );
+        }
 }
 1;
