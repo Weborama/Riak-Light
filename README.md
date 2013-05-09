@@ -30,22 +30,23 @@ Test Coverage
     ---------------------------- ------ ------ ------ ------ ------ ------ ------
     File                           stmt   bran   cond    sub    pod   time  total
     ---------------------------- ------ ------ ------ ------ ------ ------ ------
-    blib/lib/Riak/Light.pm        100.0  100.0  100.0  100.0    0.0   13.6   93.0
-    ...b/Riak/Light/Connector.pm  100.0   85.7    n/a  100.0    0.0   44.0   94.8
-    .../lib/Riak/Light/Driver.pm  100.0   83.3    n/a  100.0    0.0    4.3   93.3
-    blib/lib/Riak/Light/PBC.pm    100.0    n/a    n/a  100.0    n/a   14.4  100.0
-    ...lib/Riak/Light/Timeout.pm  100.0    n/a    n/a  100.0    n/a    0.4  100.0
-    ...ak/Light/Timeout/Alarm.pm   90.9   75.0    n/a  100.0    0.0   10.7   86.2
-    ...k/Light/Timeout/Select.pm   87.5   75.0    n/a  100.0    0.0   10.7   80.0
-    ...ght/Timeout/SetSockOpt.pm   95.7   58.3   33.3  100.0    0.0    1.9   82.3
-    Total                          96.3   83.8   63.6  100.0    0.0  100.0   89.1
+    blib/lib/Riak/Light.pm        100.0   96.2  100.0  100.0    0.0   36.6   92.4
+    ...b/Riak/Light/Connector.pm  100.0   85.7    n/a  100.0    0.0   17.9   94.8
+    .../lib/Riak/Light/Driver.pm  100.0   83.3    n/a  100.0    0.0   14.5   93.3
+    blib/lib/Riak/Light/PBC.pm    100.0    n/a    n/a  100.0    n/a   26.2  100.0
+    ...lib/Riak/Light/Timeout.pm  100.0    n/a    n/a  100.0    n/a    1.2  100.0
+    ...ak/Light/Timeout/Alarm.pm  100.0    n/a    n/a  100.0    0.0    1.4   96.0
+    ...k/Light/Timeout/Select.pm  100.0    n/a    n/a  100.0    0.0    0.7   89.2
+    ...t/Timeout/SelectOnRead.pm  100.0    n/a    n/a  100.0    0.0    0.9   89.5
+    ...ght/Timeout/SetSockOpt.pm  100.0   50.0   33.3  100.0    0.0    0.5   85.0
+    Total                         100.0   86.5   63.6  100.0    0.0  100.0   91.7
     ---------------------------- ------ ------ ------ ------ ------ ------ ------
 
-    
+
 Simple Benchmark
 ================
 
-Only GET (benchmark/simple.pl)
+Only GET (`benchmark/compare_all_only_get.pl`)
 
                               Rate Data::Riak (REST) Net::Riak (REST) Riak::Tiny (REST) Data::Riak::Fast (REST) Net::Riak (PBC) Riak::Light (PBC)
     Data::Riak (REST)        304/s                --             -30%              -38%                    -39%            -64%              -91%
@@ -55,7 +56,7 @@ Only GET (benchmark/simple.pl)
     Net::Riak (PBC)          837/s              176%              93%               69%                     69%              --              -75%
     Riak::Light (PBC)       3306/s              988%             663%              569%                    568%            295%                --
 
-Only PUT (benchmark/simple2.pl)
+Only PUT (`benchmark/compare_all_only_put.pl`)
 
                               Rate Net::Riak (REST) Data::Riak (REST) Riak::Tiny (REST) Net::Riak (PBC) Data::Riak::Fast (REST) Riak::Light (PBC)
     Net::Riak (REST)         389/s               --              -16%              -26%            -57%                    -59%              -89%
@@ -65,7 +66,7 @@ Only PUT (benchmark/simple2.pl)
     Data::Riak::Fast (REST)  943/s             143%              104%               79%              5%                      --              -74%
     Riak::Light (PBC)       3604/s             827%              680%              582%            302%                    282%                --
 
-Timeout Providers (benchmark/all.pl)
+Timeout Providers (`benchmark/compare_timeout_providers.pl`)
 
                     Rate Riak::Light 2 Riak::Light 3 Riak::Light 6 Riak::Light 4 Riak::Light 5 Riak::Light 1
     Riak::Light 2 2410/s            --          -19%          -21%          -23%          -34%          -36%
@@ -91,7 +92,7 @@ Features
 * doesn't create an object per key (ok)
 * support an option to not die, but return undef (ok)
 * be optimized for speed. (in progress)
-* try to get 100% coverage. (in progress, 96.4%)
-* benchmark with Data::Riak, Net::Riak REST, etc... (in progress)
+* try to get 100% coverage. (ok)
+* benchmark with Data::Riak, Net::Riak REST, etc... (ok)
 * documentation (in progress)
  

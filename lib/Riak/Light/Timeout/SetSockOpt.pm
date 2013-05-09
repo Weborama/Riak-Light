@@ -27,6 +27,7 @@ sub BUILD {
   
   croak "no supported yet" 
     if ( $Config{osname} eq 'netbsd' and $Config{osvers} >= 6.0 and $Config{longsize} == 4 );
+  ## TODO: see https://metacpan.org/source/ZWON/RedisDB-2.12/lib/RedisDB.pm#L235  
 
   my $seconds  = int( $self->in_timeout );
   my $useconds = int( 1_000_000 * ( $self->in_timeout - $seconds ) );
@@ -36,21 +37,31 @@ sub BUILD {
   $self->socket->setsockopt(SOL_SOCKET, SO_SNDTIMEO, $timeout) or croak "setsockopt(SO_SNDTIMEO): $!";
 }
 
-sub sysread {
+around [ qw(sysread syswrite) ] => sub {
+  my $orig = shift;
   my $self = shift;
   
-  if(! $self->is_valid()){
+  if (! $self->is_valid) {
     $! = ECONNRESET; ## no critic (RequireLocalizedPunctuationVars)
     return
   }
+  
+  $self->$orig(@_)
+};
+
+sub clean {
+  my $self = shift;
+  $self->socket->close();
+  $self->is_valid(0);
+  $! = ETIMEDOUT;  ## no critic (RequireLocalizedPunctuationVars)
+}
+
+sub sysread {
+  my $self = shift;
     
   my $result = $self->socket->sysread(@_);
   
-  unless($result){
-    $self->socket->close();
-    $self->is_valid(0);
-    $! = ETIMEDOUT;  ## no critic (RequireLocalizedPunctuationVars)
-  };
+  $self->clean() unless($result);
   
   $result
 }
@@ -58,12 +69,11 @@ sub sysread {
 sub syswrite {
   my $self = shift;
   
-  if(! $self->is_valid()){
-    $! = ECONNRESET;  ## no critic (RequireLocalizedPunctuationVars)
-    return
-  }
+  my $result = $self->socket->syswrite(@_);
   
-  $self->socket->syswrite(@_) 
+  $self->clean() unless($result);
+  
+  $result
 }
 
 1;

@@ -75,8 +75,7 @@ use Riak::Tiny;
 my $riak_tiny_client = Riak::Tiny->new( host => 'http://127.0.0.1:8098' );
  
 $riak_tiny_client->new_object(foo_riak_tiny => key => encode_json($hash)); 
-use Data::Dumper;
-print Dumper(decode_json($riak_tiny_client->get(foo_riak_tiny => 'key')->value));
+
 
 cmpthese(4_000, {
   "Riak::Tiny (REST)" => sub {
