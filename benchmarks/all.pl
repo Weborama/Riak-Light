@@ -55,12 +55,6 @@ cmpthese(4_000, {
       $riak_light_client1->get(foo_riak_light1 => 'key')
     }
   },      
-  "Net::Riak 1" => sub  {
-    $net_riak_bucket->get('key')->data;
-  },
-  "Net::Riak 2" => sub  {
-    timeout 0.5 => sub {
-      $net_riak_bucket->get('key')->data;
-    }
-  },  
+#  "Net::Riak 1" => sub  { $net_riak_bucket->get('key')->data; },
+#  "Net::Riak 2" => sub  { timeout 0.5 => sub { $net_riak_bucket->get('key')->data; } },  
 });

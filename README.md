@@ -28,23 +28,24 @@ Test Coverage
 =============
 
     ---------------------------- ------ ------ ------ ------ ------ ------ ------
-     File                           stmt   bran   cond    sub    pod   time  total
-     ---------------------------- ------ ------ ------ ------ ------ ------ ------
-     blib/lib/Riak/Light.pm        100.0  100.0  100.0  100.0    0.0   10.2   93.2
-     ...b/Riak/Light/Connector.pm  100.0   85.7    n/a  100.0    0.0   47.9   94.8
-     .../lib/Riak/Light/Driver.pm  100.0   83.3    n/a  100.0    0.0    5.1   93.3
-     blib/lib/Riak/Light/PBC.pm    100.0    n/a    n/a  100.0    n/a   10.8  100.0
-     ...lib/Riak/Light/Timeout.pm  100.0    n/a    n/a  100.0    n/a    0.5  100.0
-     ...ak/Light/Timeout/Alarm.pm   90.9   75.0    n/a  100.0    0.0   12.7   86.2
-     ...k/Light/Timeout/Select.pm   87.5   75.0    n/a  100.0    0.0   12.8   80.0
-     Total                          96.4   88.7  100.0  100.0    0.0  100.0   90.5
-     ---------------------------- ------ ------ ------ ------ ------ ------ ------
+    File                           stmt   bran   cond    sub    pod   time  total
+    ---------------------------- ------ ------ ------ ------ ------ ------ ------
+    blib/lib/Riak/Light.pm        100.0  100.0  100.0  100.0    0.0   13.6   93.0
+    ...b/Riak/Light/Connector.pm  100.0   85.7    n/a  100.0    0.0   44.0   94.8
+    .../lib/Riak/Light/Driver.pm  100.0   83.3    n/a  100.0    0.0    4.3   93.3
+    blib/lib/Riak/Light/PBC.pm    100.0    n/a    n/a  100.0    n/a   14.4  100.0
+    ...lib/Riak/Light/Timeout.pm  100.0    n/a    n/a  100.0    n/a    0.4  100.0
+    ...ak/Light/Timeout/Alarm.pm   90.9   75.0    n/a  100.0    0.0   10.7   86.2
+    ...k/Light/Timeout/Select.pm   87.5   75.0    n/a  100.0    0.0   10.7   80.0
+    ...ght/Timeout/SetSockOpt.pm   95.7   58.3   33.3  100.0    0.0    1.9   82.3
+    Total                          96.3   83.8   63.6  100.0    0.0  100.0   89.1
+    ---------------------------- ------ ------ ------ ------ ------ ------ ------
 
     
 Simple Benchmark
 ================
 
-Only GET
+Only GET (benchmark/simple.pl)
 
                               Rate Data::Riak (REST) Net::Riak (REST) Riak::Tiny (REST) Data::Riak::Fast (REST) Net::Riak (PBC) Riak::Light (PBC)
     Data::Riak (REST)        304/s                --             -30%              -38%                    -39%            -64%              -91%
@@ -54,7 +55,7 @@ Only GET
     Net::Riak (PBC)          837/s              176%              93%               69%                     69%              --              -75%
     Riak::Light (PBC)       3306/s              988%             663%              569%                    568%            295%                --
 
-Only PUT
+Only PUT (benchmark/simple2.pl)
 
                               Rate Net::Riak (REST) Data::Riak (REST) Riak::Tiny (REST) Net::Riak (PBC) Data::Riak::Fast (REST) Riak::Light (PBC)
     Net::Riak (REST)         389/s               --              -16%              -26%            -57%                    -59%              -89%
@@ -63,6 +64,23 @@ Only PUT
     Net::Riak (PBC)          897/s             131%               94%               70%              --                     -5%              -75%
     Data::Riak::Fast (REST)  943/s             143%              104%               79%              5%                      --              -74%
     Riak::Light (PBC)       3604/s             827%              680%              582%            302%                    282%                --
+
+Timeout Providers (benchmark/all.pl)
+
+                    Rate Riak::Light 2 Riak::Light 3 Riak::Light 6 Riak::Light 4 Riak::Light 5 Riak::Light 1
+    Riak::Light 2 2410/s            --          -19%          -21%          -23%          -34%          -36%
+    Riak::Light 3 2985/s           24%            --           -2%           -5%          -19%          -20%
+    Riak::Light 6 3053/s           27%            2%            --           -3%          -17%          -18%
+    Riak::Light 4 3150/s           31%            6%            3%            --          -14%          -16%
+    Riak::Light 5 3670/s           52%           23%           20%           17%            --           -2%
+    Riak::Light 1 3738/s           55%           25%           22%           19%            2%            --
+
+    1 - no timeout provider (default)
+    2 - using Riak::Light::Timeout::Alarm  (based on Time::Out and Time::HiRes)
+    3 - using Riak::Light::Timeout::Select (based on IO::Select)
+    4 - using Riak::Light::Timeout::SelectOnRead (based on IO::Select only in read operations)
+    5 - using Riak::Light::Timeout::SetSockOpt (EXPERIMENTAL)
+    6 - just call get inside Time::Out timeout
 
 Features
 ========
