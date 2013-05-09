@@ -69,3 +69,10 @@ message RpbErrorResp {
     required bytes errmsg = 1;
     required uint32 errcode = 2;
 }
+message RpbListKeysReq {
+    required bytes bucket = 1;
+}
+message RpbListKeysResp {
+    repeated bytes keys = 1;
+    optional bool done = 2;
+}

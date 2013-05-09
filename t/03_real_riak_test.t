@@ -9,9 +9,10 @@ BEGIN {
 use Test::More tests => 2;
 use Test::Exception;
 use Riak::Light;
+use JSON;
 
 subtest "simple get/set/delete test" => sub {
-    plan tests => 7;
+    plan tests => 8;
 
     my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
@@ -24,6 +25,8 @@ subtest "simple get/set/delete test" => sub {
         "should store the hashref in Riak" );
     is_deeply( $client->get( foo => 'bar' ), $hash,
         "should fetch the stored hashref from Riak" );
+    is_deeply( decode_json($client->get_raw( foo => 'bar' )), $hash,
+        "should fetch the stored hashref from Riak" );       
     ok( $client->del( foo => 'bar' ), "should delete the hashref" );
     ok( !$client->get( foo => 'bar' ), "should fetch UNDEF from Riak" );
 

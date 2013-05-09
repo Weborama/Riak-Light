@@ -106,9 +106,18 @@ sub ping {
     );
 }
 
+sub get_raw {
+  my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+  $self->_fetch($bucket, $key, decode => 0)
+}
 
 sub get {
-    my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+  my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+  $self->_fetch($bucket, $key, decode => 1)  
+}
+
+sub _fetch{
+    my ( $self, $bucket, $key, %extra) = @_;
 
     my $body = RpbGetReq->encode(
         {   r      => $self->r,
@@ -123,6 +132,7 @@ sub get {
         code          => $GET_REQUEST_CODE,
         body          => $body,
         expected_code => $GET_RESPONSE_CODE,
+        extra         => { %extra }
     );
 }
 
@@ -179,6 +189,8 @@ sub _parse_response {
     my $request_code = $args{code};
     my $operation    = REQUEST_OPERATION($request_code);
     my $request_body = $args{body};
+    my $extra        = $args{extra};
+    
     my $response     = $self->driver->perform_request( code => $request_code,
         body => $request_body );
 
@@ -208,18 +220,19 @@ sub _parse_response {
       if $response_code == $ERROR_RESPONSE_CODE;
 
     # return the result from fetch
-    return $self->_process_riak_fetch( $response_body, $bucket, $key )
+    return $self->_process_riak_fetch( $response_body, $bucket, $key, $extra )
       if $response_code == $GET_RESPONSE_CODE;
 
     1    # return true value, in case of a successful put/del
 }
 
 sub _process_riak_fetch {
-    my ( $self, $encoded_message, $bucket, $key ) = @_;
+    my ( $self, $encoded_message, $bucket, $key, $extra ) = @_;
 
     $self->_process_generic_error( "Undefined Message", 'get', $bucket, $key )
       unless ( defined $encoded_message );
 
+    my $should_decode   = ref($extra) eq 'HASH' && $extra->{decode}; 
     my $decoded_message = RpbGetResp->decode($encoded_message);
 
     my $content = $decoded_message->content;
@@ -227,7 +240,7 @@ sub _process_riak_fetch {
         my $value        = $content->[0]->value;
         my $content_type = $content->[0]->content_type;
 
-        return ( $content_type eq 'application/json' )
+        return ( $content_type eq 'application/json' and $should_decode )
           ? decode_json($value)
           : $value;
     }
