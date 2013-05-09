@@ -73,28 +73,30 @@ $data_riak_fast_bucket->add(key => encode_json($hash));
 
 use Riak::Tiny;
 my $riak_tiny_client = Riak::Tiny->new( host => 'http://127.0.0.1:8098' );
- 
-$riak_tiny_client->new_object(foo_riak_tiny => key => encode_json($hash)); 
-use Data::Dumper;
-print Dumper(decode_json($riak_tiny_client->get(foo_riak_tiny => 'key')->value));
 
 cmpthese(4_000, {
   "Riak::Tiny (REST)" => sub {
-    decode_json($riak_tiny_client->get(foo_riak_tiny => 'key')->value);
+    my $key = "key" . int(rand(1024));
+    $riak_tiny_client->new_object(foo_riak_tiny => $key => encode_json($hash)); 
   },
   "Data::Riak (REST)" => sub {
-    decode_json($data_riak_bucket->get('key')->value);
+    my $key = "key" . int(rand(1024));    
+    $data_riak_bucket->add($key => encode_json($hash));
   },
   "Data::Riak::Fast (REST)" => sub {
-    decode_json($data_riak_fast_bucket->get('key')->value);
+    my $key = "key" . int(rand(1024));    
+    $data_riak_fast_bucket->add($key => encode_json($hash));
   },  
   "Riak::Light (PBC)" => sub  {
-    $riak_light_client1->get(foo_riak_light1 => 'key')
+    my $key = "key" . int(rand(1024));    
+    $riak_light_client1->put(foo_riak_light1 => $key => $hash);
   },      
   "Net::Riak (PBC)" => sub  {
-    $net_riak_bucket1->get('key')->data;
+    my $key = "key" . int(rand(1024));
+    $net_riak_bucket1->new_object($key => $hash)->store;
   },
   "Net::Riak (REST)" => sub  {
-    $net_riak_bucket2->get('key')->data;
+    my $key = "key" . int(rand(1024));
+    $net_riak_bucket2->new_object($key => $hash)->store;    
   },  
 });

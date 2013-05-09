@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More tests => 8;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
@@ -89,6 +89,23 @@ subtest "should die if wait more than in_timeout" => sub {
   throws_ok { $client->ping() } qr/Error in 'ping' : Operation timed out/, "should die in case of timeout";
   throws_ok { $client->ping() } qr/Error in 'ping' : Connection reset by peer/, "should close the connection";
 };
+
+subtest "should die if wait more than in_timeout SetSockOpt" => sub {
+  plan tests => 2;
+
+  my $server = create_server_with_timeout(0,2);
+  
+  my $client = Riak::Light->new(
+      host => '127.0.0.1', 
+      port => $server->port,
+      in_timeout => 0.1,
+      timeout_provider => 'Riak::Light::Timeout::SetSockOpt'
+    );
+      
+  throws_ok { $client->ping() } qr/Error in 'ping' : Operation timed out/, "should die in case of timeout";
+  throws_ok { $client->ping() } qr/Error in 'ping' : Connection reset by peer/, "should close the connection";
+};
+
 
 subtest "should die if wait more than out_timeout" => sub {
   plan tests => 2;
