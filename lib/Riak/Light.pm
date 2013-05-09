@@ -253,7 +253,7 @@ sub _process_generic_error {
 
 =head1 VERSION
 
-  version 0.001  
+  version 0.001
 
 =head1 SYNOPSIS
   use Riak::Light;
@@ -297,7 +297,7 @@ sub _process_generic_error {
 
   W value setting for this client. Default 2.
 
-=head3 dw   
+=head3 dw
 
   DW value setting for this client. Default 2.
 
@@ -326,7 +326,7 @@ sub _process_generic_error {
 
 =over  
 
-=item * Riak::Light::Timeout::Alarm 
+=item * Riak::Light::Timeout::Alarm
 
   uses Time::Out and Time::HiRes to control the I/O timeout
 
@@ -351,32 +351,31 @@ sub _process_generic_error {
 =head2 METHODS
 
 =head3 ping
-  
+
   $client->ping();
-  
+
   Perform a ping operation. will die in case of error (except using autodie => 0).
-  
+
 =head3 get
 
   my $value = $client->get(bucket => 'key');
-  
+
   Perform a fetch operation. Expects bucket and key names. Decode the json into a Perl structure. if the content_type is 'application/json'.
-  
+
 =head3 put
-  
+
   $client->put(bucket => key => { some_values => [1,2,3] });
   $client->put(bucket => key => 'text', 'plain/text');
-  
-  Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'application/json'). Will encode the structure in json string if necessary. 
-  
+
+  Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'application/json'). Will encode the structure in json string if necessary.
+
 =head3 del
 
   $client->del(bucket => key);
-  
-  Perform a delete operation. Expects bucket and key names.
-  
-=head1 SEE ALSO
 
+  Perform a delete operation. Expects bucket and key names.
+
+=head1 SEE ALSO
 
 L<Net::Riak>
 
@@ -384,11 +383,10 @@ L<Data::Riak>
 
 L<Data::Riak::Fast>
 
-
 =head1 AUTHOR
 
   Tiago Peczenyj <tiago.peczenyj@gmail.com>
-  
+
 =head1 COPYRIGHT AND LICENSE
 
 This software is copyright (c) 2013 by Weborama.
