@@ -83,8 +83,11 @@ const my $PING                => 'ping';
 const my $GET                 => 'get';
 const my $PUT                 => 'put';
 const my $DEL                 => 'del';
+const my $GET_KEYS            => 'get_keys';
+
 const my $ERROR_RESPONSE_CODE => 0;
 const my $GET_RESPONSE_CODE   => 10;
+const my $GET_KEYS_RESPONSE_CODE => 18;
 
 sub CODES {
     my $operation = shift;
@@ -94,6 +97,7 @@ sub CODES {
         $GET  => { request_code => 9,  response_code => 10 },
         $PUT  => { request_code => 11, response_code => 12 },
         $DEL  => { request_code => 13, response_code => 14 },
+        $GET_KEYS => { request_code => 17, response_code => 18 },
     }->{$operation};
 }
 
@@ -119,7 +123,16 @@ sub get_keys {
     my ( $self, $bucket, $callback ) =
       validate_pos( @_, 1, 1, { type => CODEREF } );
 
-    carp "NOT IMPLEMENTED YET";
+    carp "EXPERIMENTAL";
+  
+    my $body = RpbListKeysReq->encode({bucket => $bucket});
+    $self->_parse_response(
+      key => "*",
+      bucket => $bucket,
+      operation => $GET_KEYS,
+      body => $body,
+      extra => { callback => $callback },
+    );
 }
 
 sub get_raw {
@@ -224,15 +237,33 @@ sub _parse_response {
     my $extra        = $args{extra};
     my $bucket       = $args{bucket};
     my $key          = $args{key};
+    my $callback     = $extra->{callback};           
 
-    my $response = $self->driver->perform_request(
+    $self->driver->perform_request(
         code => $request_code,
         body => $request_body
-    ) && $self->driver->read_response();
+    ) or carp "ops... $!"; # TODO: refactor this
+    
+    my $done = ! defined $callback;
+    my $response;
+    do{
+      $response = $self->driver->read_response();
 
-    if ( !defined $response ) {
-        $response = { code => -1, body => undef, error => $ERRNO };
-    }
+      if ( !defined $response ) {
+          $response = { code => -1, body => undef, error => $ERRNO };
+      } elsif(! $done && $response->{code} == $expected_code && defined $callback){
+          my $obj = RpbListKeysResp->decode($response->{body});
+
+          my $keys = $obj->keys;
+          
+          if($keys){
+            $callback->($_) foreach(@{$keys});
+          }
+          
+          $done = $obj->done
+      }
+    } while(! $done );
+    
     my $response_code  = $response->{code};
     my $response_body  = $response->{body};
     my $response_error = $response->{error};
