@@ -8,9 +8,10 @@ subtest "should die with autodie enable" => sub {
 
     my $mock = Test::MockObject->new;
 
-    my $client =
-      Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-        driver => $mock );
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 1,
+        driver => $mock
+    );
     $mock->set_always( perform_request => { error => "ops" } );
     throws_ok { $client->ping } qr/Error in 'ping' : ops/, "should die";
 };
@@ -19,9 +20,10 @@ subtest "should not die with autodie disable" => sub {
     plan tests => 3;
     my $mock = Test::MockObject->new;
 
-    my $client =
-      Riak::Light->new( host => 'host', port => 1234, autodie => 0,
-        driver => $mock );
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 0,
+        driver => $mock
+    );
     $mock->set_always( perform_request => { error => "ops" } );
 
     lives_ok { $client->ping } "should not die";
@@ -34,11 +36,14 @@ subtest "should clear \$\@ between calls" => sub {
 
     my $mock = Test::MockObject->new;
 
-    my $client =
-      Riak::Light->new( host => 'host', port => 1234, autodie => 0,
-        driver => $mock );
-    $mock->set_series( 'perform_request', { error => "ops" },
-        { error => undef, code => 2, body => q() } );
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 0,
+        driver => $mock
+    );
+    $mock->set_series(
+        'perform_request', { error => "ops" },
+        { error => undef, code => 2, body => q() }
+    );
 
     ok( !$client->ping, "should not die" );
     like( $@, qr/Error in 'ping' : ops/, "should set \$\@ to the error" );

@@ -14,24 +14,33 @@ my $hash = { baz => 1024, boom => [ 1, 2, 3, 4, 5, 1000 ] };
 my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
 my $riak_light_client1 = Riak::Light->new( host => $host, port => $port );
-my $riak_light_client2 =
-  Riak::Light->new( host => $host, port => $port,
-    timeout_provider => 'Riak::Light::Timeout::Alarm' );
-my $riak_light_client3 =
-  Riak::Light->new( host => $host, port => $port,
-    timeout_provider => 'Riak::Light::Timeout::Select' );
-my $riak_light_client4 =
-  Riak::Light->new( host => $host, port => $port,
-    timeout_provider => 'Riak::Light::Timeout::SelectOnRead' );
-my $riak_light_client5 =
-  Riak::Light->new( host => $host, port => $port,
-    timeout_provider => 'Riak::Light::Timeout::SetSockOpt' );
+my $riak_light_client2 = Riak::Light->new(
+    host             => $host, port => $port,
+    timeout_provider => 'Riak::Light::Timeout::Alarm'
+);
+my $riak_light_client3 = Riak::Light->new(
+    host             => $host, port => $port,
+    timeout_provider => 'Riak::Light::Timeout::Select'
+);
+my $riak_light_client4 = Riak::Light->new(
+    host             => $host, port => $port,
+    timeout_provider => 'Riak::Light::Timeout::SelectOnRead'
+);
+my $riak_light_client5 = Riak::Light->new(
+    host             => $host, port => $port,
+    timeout_provider => 'Riak::Light::Timeout::SetSockOpt'
+);
+my $riak_light_client6 = Riak::Light->new(
+    host             => $host, port => $port,
+    timeout_provider => 'Riak::Light::Timeout::TimeOut'
+);
 
 $riak_light_client1->put( foo_riak_light1 => key => $hash );
 $riak_light_client2->put( foo_riak_light2 => key => $hash );
 $riak_light_client3->put( foo_riak_light3 => key => $hash );
 $riak_light_client4->put( foo_riak_light4 => key => $hash );
 $riak_light_client5->put( foo_riak_light5 => key => $hash );
+$riak_light_client6->put( foo_riak_light6 => key => $hash );
 
 my $net_riak_client = Net::Riak->new(
     transport => 'PBC',
@@ -43,7 +52,7 @@ my $net_riak_bucket = $net_riak_client->bucket('foo_net_riak');
 $net_riak_client->bucket('foo_net_riak')->new_object( key => $hash )->store;
 
 cmpthese(
-    4_000,
+    3_000,
     {   "Riak::Light 1" => sub {
             $riak_light_client1->get( foo_riak_light1 => 'key' );
         },
@@ -60,9 +69,7 @@ cmpthese(
             $riak_light_client5->get( foo_riak_light5 => 'key' );
         },
         "Riak::Light 6" => sub {
-            timeout 0.5 => sub {
-                $riak_light_client1->get( foo_riak_light1 => 'key' );
-              }
+            $riak_light_client6->get( foo_riak_light6 => 'key' );
         },
 
 #  "Net::Riak 1" => sub  { $net_riak_bucket->get('key')->data; },

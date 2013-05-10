@@ -17,7 +17,7 @@ subtest "ping" => sub {
     plan tests => 4;
 
     subtest "pong should return true in case of sucess" => sub {
-        plan tests => 1;
+        plan tests => 2;
         my $mock = Test::MockObject->new;
 
         my $mock_response = {
@@ -28,27 +28,31 @@ subtest "ping" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
-        ok $client->ping(), "should return true";
+        ok $client->ping(),     "should return true";
+        ok $client->is_alive(), "should return true";
     };
 
-    subtest "ping should die in case of internal error" => sub {
-        plan tests => 1;
+    subtest "ping/is_alive should die in case of internal error" => sub {
+        plan tests => 2;
         my $mock = Test::MockObject->new;
 
         my $mock_response = { error => "some error" };
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
         throws_ok { $client->ping() } qr/Error in 'ping' : some error/,
           "should die";
+        lives_ok { $client->is_alive() } "Should not die";
     };
 
     subtest "ping should die in case of riak error" => sub {
@@ -65,9 +69,10 @@ subtest "ping" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
         throws_ok { $client->ping() }
         qr/Error in 'ping' : Riak Error \(code: 123\) 'some riak error'/,
@@ -86,9 +91,10 @@ subtest "ping" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
         throws_ok { $client->ping() }
         qr/Error in 'ping' : Unexpected Response Code in \(got: 10, expected: 2\)/,
@@ -100,7 +106,7 @@ subtest "get" => sub {
     plan tests => 5;
 
     subtest "get fetch simple value " => sub {
-        plan tests => 1;
+        plan tests => 2;
         my $mock = Test::MockObject->new;
 
         my $hash = { lol => 123 };
@@ -119,16 +125,24 @@ subtest "get" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
-        is_deeply( $client->get( foo => "bar" ), $hash,
-            "should return the same structure" );
+        is_deeply(
+            $client->get( foo => "bar" ), $hash,
+            "should return the same structure"
+        );
+
+        is_deeply(
+            decode_json( $client->get_raw( foo => "bar" ) ), $hash,
+            "should return the same structure"
+        );
     };
 
     subtest "get fetch simple text/plain value " => sub {
-        plan tests => 1;
+        plan tests => 2;
         my $mock = Test::MockObject->new;
 
         my $text = "LOL";
@@ -147,12 +161,17 @@ subtest "get" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
         is( $client->get( foo => "bar" ), $text,
-            "should return the same structure" );
+            "should return the same structure"
+        );
+        is( $client->get_raw( foo => "bar" ), $text,
+            "should return the same structure"
+        );
     };
 
     subtest "get fetch undef value" => sub {
@@ -167,9 +186,10 @@ subtest "get" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
         ok( !$client->get( foo => "bar" ), "should return nothing" );
     };
@@ -186,9 +206,10 @@ subtest "get" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
         throws_ok { $client->get( foo => "bar" ) }
         qr/Error in 'get' \(bucket: foo, key: bar\): Undefined Message/,
@@ -203,9 +224,10 @@ subtest "get" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
         throws_ok { $client->get( foo => "bar" ) }
         qr/Error in 'get' \(bucket: foo, key: bar\): some error/, "should die";
@@ -215,7 +237,7 @@ subtest "put" => sub {
     plan tests => 3;
 
     subtest "put simple data " => sub {
-        plan tests => 1;
+        plan tests => 2;
         my $mock = Test::MockObject->new;
 
         my $mock_response = {
@@ -226,16 +248,19 @@ subtest "put" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
+        my $scalar = '3.14159';
         my $hash = { foo => 123 };
         ok( $client->put( foo => "bar", $hash ), "should store data" );
+        ok( $client->put_raw( foo => "bar", $scalar ), "should store data" );
     };
 
-    subtest "put simple datain text/plain" => sub {
-        plan tests => 1;
+    subtest "put simple data in other encoding" => sub {
+        plan tests => 2;
         my $mock = Test::MockObject->new;
 
         my $mock_response = {
@@ -246,13 +271,21 @@ subtest "put" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
+        my $scalar = '3.14159';
         my $hash = { foo => 123 };
-        ok( $client->put( foo => "bar", $hash, 'text/plain' ),
-            "should store data" );
+        ok( $client->put( foo => "bar", $scalar, 'text/plain' ),
+            "should store data"
+        );
+        ok( $client->put_raw(
+                foo => "bar", encode_json($hash), 'application/json'
+            ),
+            "should store data"
+        );
     };
 
 
@@ -264,9 +297,10 @@ subtest "put" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
         my $hash = { foo => 123 };
         throws_ok { $client->put( foo => "bar", $hash ) }
         qr/Error in 'put' \(bucket: foo, key: bar\): some error/, "should die";
@@ -287,9 +321,10 @@ subtest "del" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
         ok( $client->del( foo => "bar" ), "should delete data" );
     };
@@ -302,9 +337,10 @@ subtest "del" => sub {
 
         $mock->set_always( perform_request => $mock_response );
 
-        my $client =
-          Riak::Light->new( host => 'host', port => 1234, autodie => 1,
-            driver => $mock );
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
 
         throws_ok { $client->del( foo => "bar" ) }
         qr/Error in 'del' \(bucket: foo, key: bar\): some error/, "should die";

@@ -34,9 +34,10 @@ subtest "Connector should return the message in case of success" => sub {
     plan tests => 1;
     my $mock = Test::MockObject->new;
 
-    my $connector =
-      Riak::Light::Connector->new( host => 'host', port => 1234,
-        socket => $mock );
+    my $connector = Riak::Light::Connector->new(
+        host   => 'host', port => 1234,
+        socket => $mock
+    );
 
     my $request  = pack( 'c a*', 1, q(lol) );
     my $response = pack( 'c a*', 2, q(lol) );

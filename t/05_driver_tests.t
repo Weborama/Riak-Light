@@ -12,8 +12,10 @@ subtest "should call perform_request and return a valid value" => sub {
 
     $mock->mock( perform_request => sub { pack( 'c a*', 2, q(lol) ) } );
 
-    is_deeply( $driver->perform_request( body => q(), code => 1 ),
-        { error => undef, code => 2, body => q(lol) } );
+    is_deeply(
+        $driver->perform_request( body => q(), code => 1 ),
+        { error => undef, code => 2, body => q(lol) }
+    );
 };
 
 subtest "should call perform_request and return a valid value" => sub {
@@ -24,6 +26,8 @@ subtest "should call perform_request and return a valid value" => sub {
 
     $mock->set_always( perform_request => undef );
     $! = ETIMEDOUT;
-    is_deeply( $driver->perform_request( body => q(), code => 1 ),
-        { error => 'Operation timed out', code => undef, body => undef } );
+    is_deeply(
+        $driver->perform_request( body => q(), code => 1 ),
+        { error => 'Operation timed out', code => undef, body => undef }
+    );
 };

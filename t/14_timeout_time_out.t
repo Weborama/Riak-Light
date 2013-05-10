@@ -45,7 +45,7 @@ sub create_server_with_timeout {
 }
 
 subtest
-  "should die if wait more than out_timeout with a timeout provider based on Alarm"
+  "should die if wait more than out_timeout with a timeout provider based on Time::Out"
   => sub {
     plan tests => 2;
 
@@ -55,7 +55,7 @@ subtest
         host             => '127.0.0.1',
         port             => $server->port,
         out_timeout      => 0.1,
-        timeout_provider => 'Riak::Light::Timeout::Alarm'
+        timeout_provider => 'Riak::Light::Timeout::TimeOut'
     );
 
     throws_ok { $client->ping() } qr/Error in 'ping' : Operation timed out/,
@@ -65,7 +65,7 @@ subtest
       "should close the connection";
   };
 
-subtest "should not die with a timeout provider based on Alarm" => sub {
+subtest "should not die with a timeout provider based on Time::Out" => sub {
     plan tests => 1;
 
     my $server = create_server_with_timeout( 0, 0 );
@@ -74,7 +74,7 @@ subtest "should not die with a timeout provider based on Alarm" => sub {
         host             => '127.0.0.1',
         port             => $server->port,
         timeout          => 2,
-        timeout_provider => 'Riak::Light::Timeout::Alarm'
+        timeout_provider => 'Riak::Light::Timeout::TimeOut'
     );
 
     lives_ok { $client->ping() } "should wait";

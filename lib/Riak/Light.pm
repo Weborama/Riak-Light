@@ -4,7 +4,7 @@ package Riak::Light;
 
 use Riak::Light::PBC;
 use Riak::Light::Driver;
-use Params::Validate qw(validate_pos);
+use Params::Validate qw(validate_pos SCALAR);
 use Scalar::Util qw(blessed);
 use IO::Socket;
 use Const::Fast;
@@ -23,8 +23,16 @@ has w       => ( is => 'ro', isa => Int,  default  => sub {2} );
 has dw      => ( is => 'ro', isa => Int,  default  => sub {2} );
 has autodie => ( is => 'ro', isa => Bool, default  => sub {1} );
 has timeout => ( is => 'ro', isa => Num,  default  => sub {0.5} );
-has in_timeout  => ( is => 'ro', predicate => 1 );
-has out_timeout => ( is => 'ro', predicate => 1 );
+has in_timeout  => ( is => 'lazy' );
+has out_timeout => ( is => 'lazy' );
+
+sub _build_in_timeout {
+    (shift)->timeout;
+}
+
+sub _build_out_timeout {
+    (shift)->timeout;
+}
 
 has timeout_provider =>
   ( is => 'ro', isa => Str, default => sub {'IO::Socket::INET'} );
@@ -60,11 +68,9 @@ sub _build_socket {
 
     # TODO: add a easy way to inject this proxy
     $self->timeout_provider->new(
-        socket     => $socket,
-        in_timeout => ( $self->has_in_timeout ) ? $self->in_timeout
-        : $self->timeout,
-        out_timeout => ( $self->has_out_timeout ) ? $self->out_timeout
-        : $self->timeout,
+        socket      => $socket,
+        in_timeout  => $self->in_timeout,
+        out_timeout => $self->out_timeout,
     );
 }
 
@@ -72,10 +78,10 @@ sub BUILD {
     (shift)->driver;
 }
 
-const my $ERROR_RESPONSE_CODE =>  0;
-const my $PING_REQUEST_CODE   =>  1;
-const my $PING_RESPONSE_CODE  =>  2;
-const my $GET_REQUEST_CODE    =>  9;
+const my $ERROR_RESPONSE_CODE => 0;
+const my $PING_REQUEST_CODE   => 1;
+const my $PING_RESPONSE_CODE  => 2;
+const my $GET_REQUEST_CODE    => 9;
 const my $GET_RESPONSE_CODE   => 10;
 const my $PUT_REQUEST_CODE    => 11;
 const my $PUT_RESPONSE_CODE   => 12;
@@ -84,12 +90,12 @@ const my $DEL_RESPONSE_CODE   => 14;
 
 sub REQUEST_OPERATION {
     my $code = shift;
-    
-    return {   
-      $PING_REQUEST_CODE => "ping",
-      $GET_REQUEST_CODE  => "get",
-      $PUT_REQUEST_CODE  => "put",
-      $DEL_REQUEST_CODE  => "del",
+
+    return {
+        $PING_REQUEST_CODE => "ping",
+        $GET_REQUEST_CODE  => "get",
+        $PUT_REQUEST_CODE  => "put",
+        $DEL_REQUEST_CODE  => "del",
     }->{$code};
 }
 
@@ -102,22 +108,28 @@ sub ping {
     $self->_parse_response(
         code          => $PING_REQUEST_CODE,
         body          => q(),
-        expected_code => $PING_RESPONSE_CODE,
+        expected_code => $PING_RESPONSE_CODE
     );
 }
 
+sub is_alive {
+    my $self = shift;
+
+    eval { $self->ping };
+}
+
 sub get_raw {
-  my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
-  $self->_fetch($bucket, $key, decode => 0)
+    my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+    $self->_fetch( $bucket, $key, decode => 0 );
 }
 
 sub get {
-  my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
-  $self->_fetch($bucket, $key, decode => 1)  
+    my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+    $self->_fetch( $bucket, $key, decode => 1 );
 }
 
-sub _fetch{
-    my ( $self, $bucket, $key, %extra) = @_;
+sub _fetch {
+    my ( $self, $bucket, $key, %extra ) = @_;
 
     my $body = RpbGetReq->encode(
         {   r      => $self->r,
@@ -132,8 +144,17 @@ sub _fetch{
         code          => $GET_REQUEST_CODE,
         body          => $body,
         expected_code => $GET_RESPONSE_CODE,
-        extra         => { %extra }
+        extra         => {%extra}
     );
+}
+
+sub put_raw {
+    my ( $self, $bucket, $key, $value, $content_type ) = validate_pos(
+        @_, 1, 1, 1, { type => SCALAR },
+        { default => 'plain/text' }
+    );
+
+    $self->_store( $bucket, $key, $value, $value );
 }
 
 sub put {
@@ -144,6 +165,13 @@ sub put {
       ( $content_type eq 'application/json' )
       ? encode_json($value)
       : $value;
+
+    $self->_store( $bucket, $key, $encoded_value, $content_type );
+}
+
+sub _store {
+    my ( $self, $bucket, $key, $encoded_value, $content_type ) =
+      validate_pos( @_, 1, 1, 1, { type => SCALAR }, 1 );
 
     my $body = RpbPutReq->encode(
         {   key     => $key,
@@ -190,9 +218,11 @@ sub _parse_response {
     my $operation    = REQUEST_OPERATION($request_code);
     my $request_body = $args{body};
     my $extra        = $args{extra};
-    
-    my $response     = $self->driver->perform_request( code => $request_code,
-        body => $request_body );
+
+    my $response = $self->driver->perform_request(
+        code => $request_code,
+        body => $request_body
+    );
 
     my $bucket        = $args{bucket};
     my $key           = $args{key};
@@ -203,21 +233,24 @@ sub _parse_response {
     my $response_error = $response->{error};
 
     # return internal error message
-    return $self->_process_generic_error( $response_error, $operation, $bucket,
-        $key )
-      if defined $response_error;
+    return $self->_process_generic_error(
+        $response_error, $operation, $bucket,
+        $key
+    ) if defined $response_error;
 
     # return default message
     return $self->_process_generic_error(
         "Unexpected Response Code in (got: $response_code, expected: $expected_code)",
-        $operation, $bucket, $key )
+        $operation, $bucket, $key
+      )
       if $response_code != $expected_code
           and $response_code != $ERROR_RESPONSE_CODE;
 
     # return the error msg
-    return $self->_process_riak_error( $response_body, $operation, $bucket,
-        $key )
-      if $response_code == $ERROR_RESPONSE_CODE;
+    return $self->_process_riak_error(
+        $response_body, $operation, $bucket,
+        $key
+    ) if $response_code == $ERROR_RESPONSE_CODE;
 
     # return the result from fetch
     return $self->_process_riak_fetch( $response_body, $bucket, $key, $extra )
@@ -232,7 +265,7 @@ sub _process_riak_fetch {
     $self->_process_generic_error( "Undefined Message", 'get', $bucket, $key )
       unless ( defined $encoded_message );
 
-    my $should_decode   = ref($extra) eq 'HASH' && $extra->{decode}; 
+    my $should_decode = ref($extra) eq 'HASH' && $extra->{decode};
     my $decoded_message = RpbGetResp->decode($encoded_message);
 
     my $content = $decoded_message->content;
@@ -256,8 +289,10 @@ sub _process_riak_error {
     my $errmsg  = $decoded_message->errmsg;
     my $errcode = $decoded_message->errcode;
 
-    $self->_process_generic_error( "Riak Error (code: $errcode) '$errmsg'",
-        $operation, $bucket, $key );
+    $self->_process_generic_error(
+        "Riak Error (code: $errcode) '$errmsg'",
+        $operation, $bucket, $key
+    );
 }
 
 sub _process_generic_error {
@@ -381,24 +416,44 @@ sub _process_generic_error {
 
 =head2 METHODS
 
+
+=head3 is_alive
+
+  $client->is_alive() or warn "ops... something is wrong: $@";
+
+  Perform a ping operation. Will return false in case of error (will store in $@).
+
 =head3 ping
 
-  $client->ping();
+  eval { $client->ping() } or warn "ops... something is wrong: $@";
 
-  Perform a ping operation. will die in case of error (except using autodie => 0).
+  Perform a ping operation. Will die in case of error.
 
 =head3 get
 
-  my $value = $client->get(bucket => 'key');
+  my $value_or_reference = $client->get(bucket => 'key');
 
-  Perform a fetch operation. Expects bucket and key names. Decode the json into a Perl structure. if the content_type is 'application/json'.
+  Perform a fetch operation. Expects bucket and key names. Decode the json into a Perl structure. if the content_type is 'application/json'. If you need the raw data you can use L<get_raw>.
+
+=head3 get_raw
+
+  my $scalar_value = $client->get_raw(bucket => 'key');
+
+  Perform a fetch operation. Expects bucket and key names. Return the raw data. If you need decode the json, you should use L<get> instead.
 
 =head3 put
 
   $client->put(bucket => key => { some_values => [1,2,3] });
   $client->put(bucket => key => 'text', 'plain/text');
 
-  Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'application/json'). Will encode the structure in json string if necessary.
+  Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'application/json'). Will encode the structure in json string if necessary. If you need only store the raw data you can use L<put_raw> instead.
+
+=head3 put_raw
+
+  $client->put_raw(bucket => key => encode_json({ some_values => [1,2,3] }), 'application/json');
+  $client->put_raw(bucket => key => 'text');
+
+  Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'plain/text'). Will encode the raw data. If you need encode the structure you can use L<put> instead.
 
 =head3 del
 

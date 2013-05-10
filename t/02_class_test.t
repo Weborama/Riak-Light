@@ -50,6 +50,8 @@ SKIP: {
 
     my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
-    isa_ok( Riak::Light->new( host => $host, port => $port, driver => undef ),
-        'Riak::Light' );
+    isa_ok(
+        Riak::Light->new( host => $host, port => $port, driver => undef ),
+        'Riak::Light'
+    );
 }
