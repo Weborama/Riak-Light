@@ -30,18 +30,18 @@ Test Coverage
     ---------------------------- ------ ------ ------ ------ ------ ------ ------
     File                           stmt   bran   cond    sub    pod   time  total
     ---------------------------- ------ ------ ------ ------ ------ ------ ------
-    blib/lib/Riak/Light.pm        100.0   96.2  100.0  100.0    0.0   36.6   92.4
-    ...b/Riak/Light/Connector.pm  100.0   85.7    n/a  100.0    0.0   17.9   94.8
-    .../lib/Riak/Light/Driver.pm  100.0   83.3    n/a  100.0    0.0   14.5   93.3
-    blib/lib/Riak/Light/PBC.pm    100.0    n/a    n/a  100.0    n/a   26.2  100.0
+    blib/lib/Riak/Light.pm        100.0  100.0   90.9  100.0   60.0   66.0   98.2
+    ...b/Riak/Light/Connector.pm  100.0   85.7    n/a  100.0    0.0    9.1   94.8
+    .../lib/Riak/Light/Driver.pm  100.0   83.3    n/a  100.0    0.0    6.0   93.3
+    blib/lib/Riak/Light/PBC.pm    100.0    n/a    n/a  100.0    n/a   15.6  100.0
     ...lib/Riak/Light/Timeout.pm  100.0    n/a    n/a  100.0    n/a    1.2  100.0
-    ...ak/Light/Timeout/Alarm.pm  100.0    n/a    n/a  100.0    0.0    1.4   96.0
-    ...k/Light/Timeout/Select.pm  100.0    n/a    n/a  100.0    0.0    0.7   89.2
-    ...t/Timeout/SelectOnRead.pm  100.0    n/a    n/a  100.0    0.0    0.9   89.5
-    ...ght/Timeout/SetSockOpt.pm  100.0   50.0   33.3  100.0    0.0    0.5   85.0
-    Total                         100.0   86.5   63.6  100.0    0.0  100.0   91.7
+    ...ak/Light/Timeout/Alarm.pm  100.0    n/a    n/a  100.0    0.0    0.4   96.0
+    ...k/Light/Timeout/Select.pm  100.0    n/a    n/a  100.0    0.0    0.6   89.2
+    ...t/Timeout/SelectOnRead.pm  100.0    n/a    n/a  100.0    0.0    0.5   89.5
+    ...ght/Timeout/SetSockOpt.pm  100.0   50.0   33.3  100.0    0.0    0.4   85.0
+    .../Light/Timeout/TimeOut.pm  100.0    n/a    n/a  100.0    0.0    0.1   96.0
+    Total                         100.0   87.5   70.6  100.0   15.0  100.0   94.1
     ---------------------------- ------ ------ ------ ------ ------ ------ ------
-
 
 Simple Benchmark
 ================
@@ -68,20 +68,22 @@ Only PUT (`benchmark/compare_all_only_put.pl`)
 
 Timeout Providers (`benchmark/compare_timeout_providers.pl`)
 
-                    Rate Riak::Light 2 Riak::Light 3 Riak::Light 6 Riak::Light 4 Riak::Light 5 Riak::Light 1
-    Riak::Light 2 2410/s            --          -19%          -21%          -23%          -34%          -36%
-    Riak::Light 3 2985/s           24%            --           -2%           -5%          -19%          -20%
-    Riak::Light 6 3053/s           27%            2%            --           -3%          -17%          -18%
-    Riak::Light 4 3150/s           31%            6%            3%            --          -14%          -16%
-    Riak::Light 5 3670/s           52%           23%           20%           17%            --           -2%
-    Riak::Light 1 3738/s           55%           25%           22%           19%            2%            --
+                    Rate Riak::Light 6 Riak::Light 3 Riak::Light 2 Riak::Light 4 Riak::Light 5 Riak::Light 1
+    Riak::Light 6 2326/s            --          -18%          -20%          -22%          -32%          -39%
+    Riak::Light 3 2830/s           22%            --           -3%           -5%          -17%          -25%
+    Riak::Light 2 2913/s           25%            3%            --           -2%          -15%          -23%
+    Riak::Light 4 2970/s           28%            5%            2%            --          -13%          -22%
+    Riak::Light 5 3409/s           47%           20%           17%           15%            --          -10%
+    Riak::Light 1 3797/s           63%           34%           30%           28%           11%            --
 
-    1 - no timeout provider (default)
-    2 - using Riak::Light::Timeout::Alarm  (based on Time::Out and Time::HiRes)
-    3 - using Riak::Light::Timeout::Select (based on IO::Select)
-    4 - using Riak::Light::Timeout::SelectOnRead (based on IO::Select only in read operations)
-    5 - using Riak::Light::Timeout::SetSockOpt (EXPERIMENTAL)
-    6 - just call get inside Time::Out timeout
+    where
+
+    1 - default (no IO timeout)
+    2 - using Time::HiRes (alarm) (NEW)
+    3 - using IO::Select
+    4 - using IO::Select only in read operations
+    5 - using setsockopt
+    6 - using Time::Out
 
 Features
 ========
@@ -95,4 +97,6 @@ Features
 * try to get 100% coverage. (ok)
 * benchmark with Data::Riak, Net::Riak REST, etc... (ok)
 * documentation (in progress)
- 
+* support raw data (ok)
+* support list keys (in progress)
+* debug mode (to do)
