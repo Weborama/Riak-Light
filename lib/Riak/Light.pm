@@ -79,25 +79,22 @@ sub BUILD {
     (shift)->driver;
 }
 
+const my $PING                => 'ping';
+const my $GET                 => 'get';
+const my $PUT                 => 'put';
+const my $DEL                 => 'del';
 const my $ERROR_RESPONSE_CODE => 0;
-const my $PING_REQUEST_CODE   => 1;
-const my $PING_RESPONSE_CODE  => 2;
-const my $GET_REQUEST_CODE    => 9;
 const my $GET_RESPONSE_CODE   => 10;
-const my $PUT_REQUEST_CODE    => 11;
-const my $PUT_RESPONSE_CODE   => 12;
-const my $DEL_REQUEST_CODE    => 13;
-const my $DEL_RESPONSE_CODE   => 14;
 
-sub REQUEST_OPERATION {
-    my $code = shift;
+sub CODES {
+    my $operation = shift;
 
     return {
-        $PING_REQUEST_CODE => "ping",
-        $GET_REQUEST_CODE  => "get",
-        $PUT_REQUEST_CODE  => "put",
-        $DEL_REQUEST_CODE  => "del",
-    }->{$code};
+        $PING => { request_code => 1,  response_code => 2 },
+        $GET  => { request_code => 9,  response_code => 10 },
+        $PUT  => { request_code => 11, response_code => 12 },
+        $DEL  => { request_code => 13, response_code => 14 },
+    }->{$operation};
 }
 
 before [qw(ping get put del)] => sub {
@@ -107,9 +104,8 @@ before [qw(ping get put del)] => sub {
 sub ping {
     my $self = shift;
     $self->_parse_response(
-        code          => $PING_REQUEST_CODE,
-        body          => q(),
-        expected_code => $PING_RESPONSE_CODE
+        operation => $PING,
+        body      => q(),
     );
 }
 
@@ -120,9 +116,10 @@ sub is_alive {
 }
 
 sub get_keys {
-  my ($self, $bucket, $callback) = validate_pos(@_, 1, 1, { type => CODEREF });
-  
-  carp "NOT IMPLEMENTED YET";
+    my ( $self, $bucket, $callback ) =
+      validate_pos( @_, 1, 1, { type => CODEREF } );
+
+    carp "NOT IMPLEMENTED YET";
 }
 
 sub get_raw {
@@ -146,12 +143,11 @@ sub _fetch {
     );
 
     $self->_parse_response(
-        key           => $key,
-        bucket        => $bucket,
-        code          => $GET_REQUEST_CODE,
-        body          => $body,
-        expected_code => $GET_RESPONSE_CODE,
-        extra         => {%extra}
+        key       => $key,
+        bucket    => $bucket,
+        operation => $GET,
+        body      => $body,
+        extra     => {%extra}
     );
 }
 
@@ -191,11 +187,10 @@ sub _store {
     );
 
     $self->_parse_response(
-        key           => $key,
-        bucket        => $bucket,
-        code          => $PUT_REQUEST_CODE,
-        body          => $body,
-        expected_code => $PUT_RESPONSE_CODE
+        key       => $key,
+        bucket    => $bucket,
+        operation => $PUT,
+        body      => $body,
     );
 }
 
@@ -210,32 +205,33 @@ sub del {
     );
 
     $self->_parse_response(
-        key           => $key,
-        bucket        => $bucket,
-        code          => $DEL_REQUEST_CODE,
-        body          => $body,
-        expected_code => $DEL_RESPONSE_CODE,
+        key       => $key,
+        bucket    => $bucket,
+        operation => $DEL,
+        body      => $body,
     );
 }
 
 sub _parse_response {
     my ( $self, %args ) = @_;
 
-    my $request_code  = $args{code};
-    my $operation     = REQUEST_OPERATION($request_code);
-    my $request_body  = $args{body};
-    my $extra         = $args{extra};
-    my $bucket        = $args{bucket};
-    my $key           = $args{key};
-    my $expected_code = $args{expected_code};
+    my $operation = $args{operation};
+
+    my $request_code  = CODES($operation)->{request_code};
+    my $expected_code = CODES($operation)->{response_code};
+
+    my $request_body = $args{body};
+    my $extra        = $args{extra};
+    my $bucket       = $args{bucket};
+    my $key          = $args{key};
 
     my $response = $self->driver->perform_request(
         code => $request_code,
         body => $request_body
     ) && $self->driver->read_response();
 
-    if(! defined $response){
-      $response = { code => -1, body => undef, error => $ERRNO };
+    if ( !defined $response ) {
+        $response = { code => -1, body => undef, error => $ERRNO };
     }
     my $response_code  = $response->{code};
     my $response_body  = $response->{body};

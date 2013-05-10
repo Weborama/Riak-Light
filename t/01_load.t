@@ -9,7 +9,7 @@ BEGIN {
     use_ok('Riak::Light::Timeout::Alarm');
     use_ok('Riak::Light::Timeout::Select');
     use_ok('Riak::Light::Timeout::SelectOnRead');
-    use_ok('Riak::Light::Timeout::TimeOut');    
+    use_ok('Riak::Light::Timeout::TimeOut');
 }
 
 require_ok('Riak::Light');

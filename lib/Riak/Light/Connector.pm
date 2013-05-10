@@ -23,12 +23,12 @@ sub perform_request {
 }
 
 sub read_response {
-  my $self = shift;
-  my $lenght = $self->_read_lenght();       # read first four bytes
+    my $self   = shift;
+    my $lenght = $self->_read_lenght();    # read first four bytes
 
-  return unless ($lenght);
+    return unless ($lenght);
 
-  $self->_read_all($lenght);                # read the message
+    $self->_read_all($lenght);             # read the message
 }
 
 sub _read_lenght {

@@ -28,7 +28,7 @@ subtest "Connector should return false if can't read all bytes" => sub {
     $mock->set_false('sysread');
 
     ok( $connector->perform_request($message), "should return true" );
-    ok( ! $connector->read_response($message), "should return false" );  
+    ok( !$connector->read_response($message),  "should return false" );
 };
 
 subtest "Connector should return the message in case of success" => sub {
@@ -57,6 +57,6 @@ subtest "Connector should return the message in case of success" => sub {
 
     #$mock->set_true('send_all');
     #$mock->set_series('read_all', pack('N',1), pack('a*', 2));
-    ok($connector->perform_request($request));
+    ok( $connector->perform_request($request) );
     is( $connector->read_response(), $response, "should return 2" );
 };

@@ -22,13 +22,13 @@ subtest "ping" => sub {
         my $mock = Test::MockObject->new;
 
         my $mock_response = {
-            code  => 2,
-            body  => q()
+            code => 2,
+            body => q()
         };
 
         $mock->set_true('perform_request');
         $mock->set_always( read_response => $mock_response );
-        
+
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -50,7 +50,7 @@ subtest "ping" => sub {
             host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
-        
+
         $! = ETIMEDOUT;
         throws_ok { $client->ping() } qr/Error in 'ping' : Operation timed/,
           "should die";
@@ -68,7 +68,7 @@ subtest "ping" => sub {
                 { errmsg => "some riak error", errcode => 123 }
             )
         };
-        
+
         $mock->set_true('perform_request');
         $mock->set_always( read_response => $mock_response );
 
@@ -128,7 +128,7 @@ subtest "get" => sub {
         };
 
         $mock->set_true('perform_request');
-        $mock->set_always( read_response => $mock_response );        
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
