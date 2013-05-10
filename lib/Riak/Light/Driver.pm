@@ -33,11 +33,13 @@ sub perform_request {
 
     my $message = pack( 'c a*', $request_code, $request_body );
 
-    my $response = $self->connector->perform_request($message);
+    $self->connector->perform_request($message) or return $self->_parse_error();
+}
 
-    return $self->_parse_error() unless defined $response;
-
-    $self->_parse_response($response);
+sub read_response {
+  my $self = shift;
+  my $response = $self->connector->read_response() or return $self->_parse_error();
+  $self->_parse_response($response);
 }
 
 sub _parse_response {
@@ -48,8 +50,7 @@ sub _parse_response {
 }
 
 sub _parse_error {
-    {   code => undef, body => undef, error => $ERRNO    # $EVAL_ERROR
-    };
+    { code => -1, body => undef, error => $ERRNO };
 }
 
 1;

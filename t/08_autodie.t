@@ -12,7 +12,8 @@ subtest "should die with autodie enable" => sub {
         host   => 'host', port => 1234, autodie => 1,
         driver => $mock
     );
-    $mock->set_always( perform_request => { error => "ops" } );
+    $mock->set_true('perform_request');
+    $mock->set_always( read_response => { error => "ops" } );
     throws_ok { $client->ping } qr/Error in 'ping' : ops/, "should die";
 };
 
@@ -24,7 +25,8 @@ subtest "should not die with autodie disable" => sub {
         host   => 'host', port => 1234, autodie => 0,
         driver => $mock
     );
-    $mock->set_always( perform_request => { error => "ops" } );
+    $mock->set_true('perform_request');
+    $mock->set_always( read_response => { error => "ops" } );
 
     lives_ok { $client->ping } "should not die";
     ok( !$client->ping, "should return undef" );
@@ -40,8 +42,9 @@ subtest "should clear \$\@ between calls" => sub {
         host   => 'host', port => 1234, autodie => 0,
         driver => $mock
     );
+    $mock->set_true('perform_request');
     $mock->set_series(
-        'perform_request', { error => "ops" },
+        'read_response', { error => "ops" },
         { error => undef, code => 2, body => q() }
     );
 

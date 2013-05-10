@@ -3,6 +3,7 @@ use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
 use Riak::Light::PBC;
+use POSIX qw(ETIMEDOUT);
 use JSON;
 
 subtest "error handling" => sub {
@@ -21,12 +22,13 @@ subtest "ping" => sub {
         my $mock = Test::MockObject->new;
 
         my $mock_response = {
-            error => undef,
             code  => 2,
             body  => q()
         };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
+        
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -41,16 +43,16 @@ subtest "ping" => sub {
         plan tests => 2;
         my $mock = Test::MockObject->new;
 
-        my $mock_response = { error => "some error" };
-
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_false('read_response');
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
-
-        throws_ok { $client->ping() } qr/Error in 'ping' : some error/,
+        
+        $! = ETIMEDOUT;
+        throws_ok { $client->ping() } qr/Error in 'ping' : Operation timed/,
           "should die";
         lives_ok { $client->is_alive() } "Should not die";
     };
@@ -66,8 +68,9 @@ subtest "ping" => sub {
                 { errmsg => "some riak error", errcode => 123 }
             )
         };
-
-        $mock->set_always( perform_request => $mock_response );
+        
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -89,7 +92,8 @@ subtest "ping" => sub {
             body  => q()
         };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -123,7 +127,8 @@ subtest "get" => sub {
             )
         };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );        
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -159,7 +164,8 @@ subtest "get" => sub {
             )
         };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -184,7 +190,8 @@ subtest "get" => sub {
             body  => RpbGetResp->encode( { content => undef } )
         };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -204,7 +211,8 @@ subtest "get" => sub {
             body  => undef
         };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -222,7 +230,8 @@ subtest "get" => sub {
 
         my $mock_response = { error => "some error" };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -246,7 +255,8 @@ subtest "put" => sub {
             body  => q()
         };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -269,7 +279,8 @@ subtest "put" => sub {
             body  => q()
         };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -295,7 +306,8 @@ subtest "put" => sub {
 
         my $mock_response = { error => "some error" };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -319,7 +331,8 @@ subtest "del" => sub {
             body  => q()
         };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
@@ -335,7 +348,8 @@ subtest "del" => sub {
 
         my $mock_response = { error => "some error" };
 
-        $mock->set_always( perform_request => $mock_response );
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,

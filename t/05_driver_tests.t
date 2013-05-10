@@ -10,10 +10,12 @@ subtest "should call perform_request and return a valid value" => sub {
 
     my $driver = Riak::Light::Driver->new( connector => $mock );
 
-    $mock->mock( perform_request => sub { pack( 'c a*', 2, q(lol) ) } );
+    $mock->set_true ('perform_request');
+    $mock->mock( read_response => sub { pack( 'c a*', 2, q(lol) ) } );
 
+    $driver->perform_request( body => q(), code => 1 );
     is_deeply(
-        $driver->perform_request( body => q(), code => 1 ),
+        $driver->read_response(),
         { error => undef, code => 2, body => q(lol) }
     );
 };
@@ -24,10 +26,13 @@ subtest "should call perform_request and return a valid value" => sub {
 
     my $driver = Riak::Light::Driver->new( connector => $mock );
 
-    $mock->set_always( perform_request => undef );
+    $mock->set_true ('perform_request');
+    $mock->set_false( 'read_response' );
     $! = ETIMEDOUT;
+    
+    $driver->perform_request( body => q(), code => 1 );
     is_deeply(
-        $driver->perform_request( body => q(), code => 1 ),
-        { error => 'Operation timed out', code => undef, body => undef }
+        $driver->read_response(),
+        { error => 'Operation timed out', code => -1, body => undef }
     );
 };

@@ -4,7 +4,8 @@ package Riak::Light;
 
 use Riak::Light::PBC;
 use Riak::Light::Driver;
-use Params::Validate qw(validate_pos SCALAR);
+use Params::Validate qw(validate_pos SCALAR CODEREF);
+use English qw( −no_match_vars );
 use Scalar::Util qw(blessed);
 use IO::Socket;
 use Const::Fast;
@@ -118,6 +119,12 @@ sub is_alive {
     eval { $self->ping };
 }
 
+sub get_keys {
+  my ($self, $bucket, $callback) = validate_pos(@_, 1, 1, { type => CODEREF });
+  
+  carp "NOT IMPLEMENTED YET";
+}
+
 sub get_raw {
     my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
     $self->_fetch( $bucket, $key, decode => 0 );
@@ -214,21 +221,23 @@ sub del {
 sub _parse_response {
     my ( $self, %args ) = @_;
 
-    my $request_code = $args{code};
-    my $operation    = REQUEST_OPERATION($request_code);
-    my $request_body = $args{body};
-    my $extra        = $args{extra};
-
-    my $response = $self->driver->perform_request(
-        code => $request_code,
-        body => $request_body
-    );
-
+    my $request_code  = $args{code};
+    my $operation     = REQUEST_OPERATION($request_code);
+    my $request_body  = $args{body};
+    my $extra         = $args{extra};
     my $bucket        = $args{bucket};
     my $key           = $args{key};
     my $expected_code = $args{expected_code};
 
-    my $response_code  = $response->{code} // -1;
+    my $response = $self->driver->perform_request(
+        code => $request_code,
+        body => $request_body
+    ) && $self->driver->read_response();
+
+    if(! defined $response){
+      $response = { code => -1, body => undef, error => $ERRNO };
+    }
+    my $response_code  = $response->{code};
     my $response_body  = $response->{body};
     my $response_error = $response->{error};
 

@@ -19,15 +19,16 @@ sub perform_request {
 
     my $bytes = pack( 'N a*', bytes::length($message), $message );
 
-    my $sended = $self->_send_all($bytes);    # send request
+    $self->_send_all($bytes);    # send request
+}
 
-    return unless ($sended);
+sub read_response {
+  my $self = shift;
+  my $lenght = $self->_read_lenght();       # read first four bytes
 
-    my $lenght = $self->_read_lenght();       # read first four bytes
+  return unless ($lenght);
 
-    return unless ($lenght);
-
-    $self->_read_all($lenght);                # read the message
+  $self->_read_all($lenght);                # read the message
 }
 
 sub _read_lenght {
