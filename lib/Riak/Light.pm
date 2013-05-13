@@ -460,12 +460,6 @@ sub _process_generic_error {
 
   Perform a ping operation. Will return false in case of error (will store in $@).
 
-=head3 ping
-
-  eval { $client->ping() } or warn "ops... something is wrong: $@";
-
-  Perform a ping operation. Will die in case of error.
-
 =head3 get
 
   my $value_or_reference = $client->get(bucket => 'key');
