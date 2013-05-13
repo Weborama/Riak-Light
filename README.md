@@ -32,15 +32,6 @@ Fast and lightweight Perl client for Riak
        $another_client->del(foo => $key);
     });
 
-Install
-=======
-
-Using cpanm
-
-    cpanm https://github.com/Weborama/Riak-Light/blob/master/Riak-Light-0.01.tar.gz
-
-To run tests over a real riak, set the `RIAK_PBC_HOST` variable to hostname:port
-
 Test Coverage
 =============
 
