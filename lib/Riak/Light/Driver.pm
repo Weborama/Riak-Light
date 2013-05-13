@@ -2,7 +2,7 @@
 package Riak::Light::Driver;
 ## use critic
 
-use English qw( −no_match_vars );
+use English qw( -no_match_vars );
 use Riak::Light::Connector;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
@@ -12,7 +12,7 @@ use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 has connector => ( is => 'ro', required => 1 );
 
 sub BUILDARGS {
-    my ( $class, %args ) = @_;
+    my ( undef, %args ) = @_;
 
     return +{%args} if exists $args{connector};
 

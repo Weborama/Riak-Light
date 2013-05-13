@@ -5,7 +5,7 @@ package Riak::Light;
 use Riak::Light::PBC;
 use Riak::Light::Driver;
 use Params::Validate qw(validate_pos SCALAR CODEREF);
-use English qw( −no_match_vars );
+use English qw(-no_match_vars );
 use Scalar::Util qw(blessed);
 use IO::Socket;
 use Const::Fast;
@@ -168,7 +168,7 @@ sub put_raw {
         { default => 'plain/text' }
     );
 
-    $self->_store( $bucket, $key, $value, $value );
+    $self->_store( $bucket, $key, $value, $content_type );
 }
 
 sub put {
@@ -352,14 +352,6 @@ sub _process_generic_error {
 
 __END__
 
-=head1 NAME
-
-  Riak::Light - Fast and lightweight Perl client for Riak
-
-=head1 VERSION
-
-  version 0.001
-
 =head1 SYNOPSIS
   use Riak::Light;
 
@@ -372,7 +364,7 @@ __END__
   try { $client->ping() };
 
   # store hashref into bucket 'foo', key 'bar'
-  $client->put( foo => bar => { baz => 1024 }, content_type => 'application/json')
+  $client->put( foo => bar => { baz => 1024 }, 'application/json');
 
   # fetch hashref from bucket 'foo', key 'bar'
   my $hash = $client->get( foo => 'bar');
@@ -382,76 +374,75 @@ __END__
   
 =head1 DESCRIPTION
 
-  Riak::Light is a very light (and fast) perl client for Riak using PBC interface. Support only basic operations like ping, get, put and del. Is flexible to change the timeout backend for I/O operations and can suppress 'die' in case of error (autodie) using the configuration. There is no auto-reconnect option.
+Riak::Light is a very light (and fast) perl client for Riak using PBC interface. Support only basic operations like ping, get, put and del. Is flexible to change the timeout backend for I/O operations and can suppress 'die' in case of error (autodie) using the configuration. There is no auto-reconnect option.
 
 =head2 ATTRIBUTES
 
 =head3 host
 
-  Riak ip or hostname. There is no default.
+Riak ip or hostname. There is no default.
 
 =head3 port
 
-  Port of the PBC interface. There is no default.
+Port of the PBC interface. There is no default.
 
 =head3 r
 
-  R value setting for this client. Default 2.
+R value setting for this client. Default 2.
 
 =head3 w
 
-  W value setting for this client. Default 2.
+W value setting for this client. Default 2.
 
 =head3 dw
 
-  DW value setting for this client. Default 2.
+DW value setting for this client. Default 2.
 
 =head3 autodie
 
-  Boolean, if false each operation will return undef in case of error (stored in $@).
-  (Default is true)
+Boolean, if false each operation will return undef in case of error (stored in $@). Default is true.
 
 =head3 timeout
 
-  Timeout for connection, write and read operations. Default is 0.5 seconds.
+Timeout for connection, write and read operations. Default is 0.5 seconds.
 
 =head3 in_timeout
 
-  Timeout for read operations. Default is timeout value.
+Timeout for read operations. Default is timeout value.
 
 =head3 out_timeout
 
-  Timeout for write operations. Default is timeout value.
+Timeout for write operations. Default is timeout value.
 
 =head3 timeout_provider
 
-  Can change the backend for timeout. The default value is IO::Socket::INET and there is only support to connection timeout.
-  IMPORTANT: in case of any timeout error, the socket between this client and the Riak server will be closed.
-  To support I/O timeout you can choose 4 options:
+Can change the backend for timeout. The default value is IO::Socket::INET and there is only support to connection timeout.
+IMPORTANT: in case of any timeout error, the socket between this client and the Riak server will be closed.
+To support I/O timeout you can choose 4 options:
 
 =over  
 
 =item * Riak::Light::Timeout::Alarm
 
-  uses Time::Out and Time::HiRes to control the I/O timeout
+uses Time::Out and Time::HiRes to control the I/O timeout
 
 =item *  Riak::Light::Timeout::Select
 
-  uses IO::Select to control the I/O timeout
+uses IO::Select to control the I/O timeout
 
 =item *  Riak::Light::Timeout::SelectOnWrite
 
-  uses IO::Select to control only Output Operations
+uses IO::Select to control only Output Operations
 
 =item *  Riak::Light::Timeout::SetSockOpt
 
-  uses setsockopt to set SO_RCVTIMEO and SO_SNDTIMEO socket properties. Experimental.
+uses setsockopt to set SO_RCVTIMEO and SO_SNDTIMEO socket properties. Experimental.
 
 =back
 
 =head3 driver
 
-  This is a Riak::Light::Driver instance, to be able to connect and perform requests to Riak over PBC interface.
+This is a Riak::Light::Driver instance, to be able to connect and perform requests to Riak over PBC interface.
 
 =head2 METHODS
 
@@ -460,39 +451,39 @@ __END__
 
   $client->is_alive() or warn "ops... something is wrong: $@";
 
-  Perform a ping operation. Will return false in case of error (will store in $@).
+Perform a ping operation. Will return false in case of error (will store in $@).
 
 =head3 get
 
   my $value_or_reference = $client->get(bucket => 'key');
 
-  Perform a fetch operation. Expects bucket and key names. Decode the json into a Perl structure. if the content_type is 'application/json'. If you need the raw data you can use L<get_raw>.
+Perform a fetch operation. Expects bucket and key names. Decode the json into a Perl structure. if the content_type is 'application/json'. If you need the raw data you can use L<get_raw>.
 
 =head3 get_raw
 
   my $scalar_value = $client->get_raw(bucket => 'key');
 
-  Perform a fetch operation. Expects bucket and key names. Return the raw data. If you need decode the json, you should use L<get> instead.
+Perform a fetch operation. Expects bucket and key names. Return the raw data. If you need decode the json, you should use L<get> instead.
 
 =head3 put
 
   $client->put(bucket => key => { some_values => [1,2,3] });
   $client->put(bucket => key => 'text', 'plain/text');
 
-  Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'application/json'). Will encode the structure in json string if necessary. If you need only store the raw data you can use L<put_raw> instead.
+Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'application/json'). Will encode the structure in json string if necessary. If you need only store the raw data you can use L<put_raw> instead.
 
 =head3 put_raw
 
   $client->put_raw(bucket => key => encode_json({ some_values => [1,2,3] }), 'application/json');
   $client->put_raw(bucket => key => 'text');
 
-  Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'plain/text'). Will encode the raw data. If you need encode the structure you can use L<put> instead.
+Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'plain/text'). Will encode the raw data. If you need encode the structure you can use L<put> instead.
 
 =head3 del
 
   $client->del(bucket => key);
 
-  Perform a delete operation. Expects bucket and key names.
+Perform a delete operation. Expects bucket and key names.
   
 =head3 get_keys
 
@@ -503,7 +494,7 @@ __END__
      $another_client->del(foo => $key);
   });
 
-  Perform a list keys operation. Receive a callback and will call it for each key. You can't use this callback to perform other operations!
+Perform a list keys operation. Receive a callback and will call it for each key. You can't use this callback to perform other operations!
 
 =head1 SEE ALSO
 

@@ -44,7 +44,7 @@ subtest "simple get/set/delete test" => sub {
     ok( $client->put( foo => "baz", 'TEXT', 'plain/text' ),
         "should store the text in Riak"
     );
-    is( $client->get( foo => "baz" ), 'TEXT',,
+    is( $client->get( foo => "baz" ), 'TEXT',
         "should fetch the text from Riak"
     );
 
