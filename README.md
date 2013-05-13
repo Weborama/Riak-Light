@@ -109,4 +109,4 @@ Features
 * support list keys (ok)
 * debug mode (to do)
 * on_error callback (to do)
-* refactor to use Moo::Roles instead other objects (ok)
+* refactor to use Moo::Roles instead other objects (to do)
