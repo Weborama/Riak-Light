@@ -9,7 +9,7 @@ Fast and lightweight Perl client for Riak
       port => 8087
     );
     
-    $client->ping() or die "ops, riak is not alive";
+    $client->is_alive() or die "ops, riak is not alive";
 
     # store hashref into bucket 'foo', key 'bar'
     # will serializer as 'application/json'
@@ -23,6 +23,23 @@ Fast and lightweight Perl client for Riak
 
     # delete hashref from bucket 'foo', key 'bar'
     $client->del(foo => 'bar');
+    
+    # list keys in stream
+    $client->get_keys(foo => sub{
+       my $key = $_[0];
+       
+       # you should use another client inside this callback!
+       $another_client->del(foo => $key);
+    });
+
+Install
+=======
+
+Using cpanm
+
+    cpanm https://github.com/Weborama/Riak-Light/blob/master/Riak-Light-0.001.tar.gz
+
+To run tests over a real riak, set the `RIAK_PBC_HOST` variable to hostname:port
 
 Test Coverage
 =============
