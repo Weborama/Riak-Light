@@ -69,3 +69,15 @@ sub syswrite {
 }
 
 1;
+
+=head1 NAME
+
+  Riak::Light::Timeout::SelectOnRead -IO Timeout based on IO::Select (only in read operations) for Riak::Light
+
+=head1 VERSION
+
+  version 0.001
+
+=head1 DESCRIPTION
+  
+  Internal class

@@ -72,3 +72,17 @@ sub syswrite {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+  Riak::Light::Timeout::TimeOut -IO Timeout based on Time::Out for Riak::Light
+
+=head1 VERSION
+
+  version 0.001
+
+=head1 DESCRIPTION
+  
+  Internal class

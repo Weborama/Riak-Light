@@ -56,3 +56,17 @@ sub _parse_error {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+  Riak::Light::Driver - Riak Driver for Riak::Light
+
+=head1 VERSION
+
+  version 0.001
+
+=head1 DESCRIPTION
+  
+  Internal class

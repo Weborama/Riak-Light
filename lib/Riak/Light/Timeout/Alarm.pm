@@ -86,3 +86,18 @@ sub syswrite {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+  Riak::Light::Timeout::Alarm - IO Timeout based on sig alarm + time hires for Riak::Light
+
+=head1 VERSION
+
+  version 0.001
+
+=head1 DESCRIPTION
+  
+  Internal class
+

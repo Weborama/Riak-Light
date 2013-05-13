@@ -81,3 +81,17 @@ sub syswrite {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+  Riak::Light::Timeout::SetSockOpt -IO Timeout based on setsockopt (Experimental) for Riak::Light
+
+=head1 VERSION
+
+  version 0.001
+
+=head1 DESCRIPTION
+  
+  Internal class

@@ -350,6 +350,8 @@ sub _process_generic_error {
 
 1;
 
+__END__
+
 =head1 NAME
 
   Riak::Light - Fast and lightweight Perl client for Riak
@@ -491,6 +493,17 @@ sub _process_generic_error {
   $client->del(bucket => key);
 
   Perform a delete operation. Expects bucket and key names.
+  
+=head3 get_keys
+
+  $client->get_keys(foo => sub{
+     my $key = $_[0];
+
+     # you should use another client inside this callback!
+     $another_client->del(foo => $key);
+  });
+
+  Perform a list keys operation. Receive a callback and will call it for each key. You can't use this callback to perform other operations!
 
 =head1 SEE ALSO
 

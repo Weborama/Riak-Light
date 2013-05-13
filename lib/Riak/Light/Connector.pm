@@ -84,3 +84,17 @@ sub _read_all {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+  Riak::Light::Connetor - Riak Connector for Riak::Light
+
+=head1 VERSION
+
+  version 0.001
+
+=head1 DESCRIPTION
+  
+  Internal class
