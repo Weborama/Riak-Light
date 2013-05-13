@@ -6,7 +6,7 @@ BEGIN {
     }
 }
 
-use Test::More tests => 2;
+use Test::More tests => 3;
 use Test::Exception;
 use Riak::Light;
 use JSON;
@@ -49,6 +49,37 @@ subtest "simple get/set/delete test" => sub {
     );
 
     #ok(!$@, "should has no error - foo => bar is undefined");
+};
+
+subtest "get keys" => sub {
+  plan tests => 4;
+  
+  my $bucket = "foo_" . int(rand(1024)) . "_" . int(rand(1024));
+  
+  my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
+
+  my $client = Riak::Light->new( host => $host, port => $port );
+  
+  my @keys;
+  $client->get_keys($bucket => sub { push @keys, $_[0]});
+  
+  foreach my $key (@keys) {
+    $client->del($bucket => $key);
+  }
+  my $hash = { a => 1 };
+  
+  $client->put( $bucket => "bar", $hash );
+  $client->put( $bucket => "baz", $hash );
+  $client->put( $bucket => "bam", $hash );
+  
+  @keys = ();
+  $client->get_keys($bucket => sub { push @keys, $_[0]});
+  
+  @keys = sort @keys;
+  is(scalar @keys, 3);
+  is($keys[0], 'bam');
+  is($keys[1], 'bar');
+  is($keys[2], 'baz');
 };
 
 subtest "sequence of 1024 get/set" => sub {

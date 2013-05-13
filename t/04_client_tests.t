@@ -1,4 +1,4 @@
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
@@ -359,4 +359,95 @@ subtest "del" => sub {
         throws_ok { $client->del( foo => "bar" ) }
         qr/Error in 'del' \(bucket: foo, key: bar\): some error/, "should die";
     };
+};
+
+subtest "get_keys" => sub {
+  plan tests => 3;
+
+  subtest "should throw error" => sub {
+    plan tests => 1;
+    my $mock = Test::MockObject->new;
+
+    my $mock_response = {
+        error => "ops",
+        code  => -1,
+        body  => undef
+    };
+
+    $mock->set_true('perform_request');
+    $mock->set_always('read_response', $mock_response);
+
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 1,
+        driver => $mock
+    );
+
+    throws_ok {
+      $client->get_keys( foo => sub {
+        fail("should not be called");
+      });
+    } qr/Error in 'get_keys' \(bucket: foo, key: \*\): ops/;
+  };
+
+  
+  subtest "get no keys" => sub {
+    plan tests => 1;
+    my $mock = Test::MockObject->new;
+
+    my $mock_response = {
+        error => undef,
+        code  => 18,
+        body  => RpbListKeysResp->encode({keys => [], done => 1})
+    };
+
+    $mock->set_true('perform_request');
+    $mock->set_always('read_response', $mock_response);
+
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 1,
+        driver => $mock
+    );
+
+    my @keys;
+    $client->get_keys( foo => sub {
+      fail("should not be called");
+    });
+    
+    is(scalar @keys, 0);
+  };
+  
+  subtest "simple retrieve" => sub {
+    plan tests => 3;
+    my $mock = Test::MockObject->new;
+
+    my $mock_response1 = {
+        error => undef,
+        code  => 18,
+        body  => RpbListKeysResp->encode({keys => [1,2], done => 0})
+    };
+
+    my $mock_response2 = {
+        error => undef,
+        code  => 18,
+        body  => RpbListKeysResp->encode({keys => [], done => 1})
+    };
+
+    $mock->set_true('perform_request');
+    $mock->set_series('read_response', $mock_response1, $mock_response2);
+
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 1,
+        driver => $mock
+    );
+
+    my @keys;
+    $client->get_keys( foo => sub {
+      push @keys, $_[0];
+    });
+    @keys = sort @keys;
+
+    is(scalar @keys, 2);
+    is($keys[0],1);
+    is($keys[1],2);
+  };
 };

@@ -122,9 +122,7 @@ sub is_alive {
 sub get_keys {
     my ( $self, $bucket, $callback ) =
       validate_pos( @_, 1, 1, { type => CODEREF } );
-
-    carp "EXPERIMENTAL";
-  
+      
     my $body = RpbListKeysReq->encode({bucket => $bucket});
     $self->_parse_response(
       key => "*",
@@ -251,7 +249,8 @@ sub _parse_response {
 
       if ( !defined $response ) {
           $response = { code => -1, body => undef, error => $ERRNO };
-      } elsif(! $done && $response->{code} == $expected_code && defined $callback){
+          $done = 1;
+      } elsif(! $done && $response->{code} == $expected_code && $expected_code == $GET_KEYS_RESPONSE_CODE && defined $callback){
           my $obj = RpbListKeysResp->decode($response->{body});
 
           my $keys = $obj->keys;
@@ -261,6 +260,8 @@ sub _parse_response {
           }
           
           $done = $obj->done
+      } elsif(! $done ){
+        $done = 1;
       }
     } while(! $done );
     
