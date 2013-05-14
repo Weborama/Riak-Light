@@ -34,14 +34,13 @@ sub perform_request {
     my $message = pack( 'c a*', $request_code, $request_body );
 
     $self->connector->perform_request($message)
-      or return $self->_parse_error();
 }
 
 sub read_response {
     my $self     = shift;
     my $response = $self->connector->read_response()
       or return $self->_parse_error();
-    $self->_parse_response($response);
+    $self->_parse_response($response)
 }
 
 sub _parse_response {

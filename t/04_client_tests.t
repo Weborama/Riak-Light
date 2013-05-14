@@ -15,7 +15,7 @@ subtest "error handling" => sub {
 };
 
 subtest "ping" => sub {
-    plan tests => 4;
+    plan tests => 5;
 
     subtest "pong should return true in case of sucess" => sub {
         plan tests => 2;
@@ -104,6 +104,29 @@ subtest "ping" => sub {
         qr/Error in 'ping' : Unexpected Response Code in \(got: 10, expected: 2\)/,
           "should die";
     };
+    
+    subtest "ping should die in case of can't send the request" => sub {
+        plan tests => 1;
+        my $mock = Test::MockObject->new;
+
+        my $mock_response = {
+            error => undef,
+            code  => 10,
+            body  => q()
+        };
+
+        $! = ETIMEDOUT;
+        $mock->set_false('perform_request');
+
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
+
+        throws_ok { $client->ping() }
+        qr/Error in 'ping' : Operation timed out/,
+          "should die";
+    };    
 };
 
 subtest "get" => sub {

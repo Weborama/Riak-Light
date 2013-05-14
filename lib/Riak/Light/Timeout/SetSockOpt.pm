@@ -23,23 +23,36 @@ has is_valid    => ( is => 'rw', isa      => Bool, default => sub {1} );
 sub BUILD {
     my $self = shift;
 
-    carp "This Timeout Provider is EXPERIMENTAL!";
+    # carp "This Timeout Provider is EXPERIMENTAL!";
 
     croak "no supported yet"
       if (  $Config{osname} eq 'netbsd'
         and $Config{osvers} >= 6.0
         and $Config{longsize} == 4 );
     ## TODO: see https://metacpan.org/source/ZWON/RedisDB-2.12/lib/RedisDB.pm#L235
-
-    my $seconds  = int( $self->in_timeout );
-    my $useconds = int( 1_000_000 * ( $self->in_timeout - $seconds ) );
-    my $timeout  = pack( 'l!l!', $seconds, $useconds );
-
-    $self->socket->setsockopt( SOL_SOCKET, SO_RCVTIMEO, $timeout )
-      or croak "setsockopt(SO_RCVTIMEO): $!";
-    $self->socket->setsockopt( SOL_SOCKET, SO_SNDTIMEO, $timeout )
-      or croak "setsockopt(SO_SNDTIMEO): $!";
+    
+    $self->_set_so_rcvtimeo();
+    $self->_set_so_sndtimeo();
 }
+
+sub _set_so_rcvtimeo {
+  my $self     = shift;
+  my $seconds  = int( $self->in_timeout );
+  my $useconds = int( 1_000_000 * ( $self->in_timeout - $seconds ) );
+  my $timeout  = pack( 'l!l!', $seconds, $useconds );
+
+  $self->socket->setsockopt( SOL_SOCKET, SO_RCVTIMEO, $timeout )
+    or croak "setsockopt(SO_RCVTIMEO): $!";
+}
+sub _set_so_sndtimeo {
+  my $self     = shift;  
+  my $seconds  = int( $self->out_timeout );
+  my $useconds = int( 1_000_000 * ( $self->out_timeout - $seconds ) );
+  my $timeout  = pack( 'l!l!', $seconds, $useconds );
+
+  $self->socket->setsockopt( SOL_SOCKET, SO_RCVTIMEO, $timeout )
+    or croak "setsockopt(SO_RCVTIMEO): $!";
+}  
 
 around [qw(sysread syswrite)] => sub {
     my $orig = shift;
