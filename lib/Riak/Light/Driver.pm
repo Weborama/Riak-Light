@@ -14,8 +14,6 @@ has connector => ( is => 'ro', required => 1 );
 sub BUILDARGS {
     my ( undef, %args ) = @_;
 
-    return +{%args} if exists $args{connector};
-
     if ( exists $args{socket} ) {
         my $connector = Riak::Light::Connector->new( socket => $args{socket} );
 
@@ -33,14 +31,14 @@ sub perform_request {
 
     my $message = pack( 'c a*', $request_code, $request_body );
 
-    $self->connector->perform_request($message)
+    $self->connector->perform_request($message);
 }
 
 sub read_response {
     my $self     = shift;
     my $response = $self->connector->read_response()
       or return $self->_parse_error();
-    $self->_parse_response($response)
+    $self->_parse_response($response);
 }
 
 sub _parse_response {
@@ -57,14 +55,6 @@ sub _parse_error {
 1;
 
 __END__
-
-=head1 NAME
-
-  Riak::Light::Driver - Riak Driver for Riak::Light
-
-=head1 VERSION
-
-  version 0.001
 
 =head1 DESCRIPTION
   

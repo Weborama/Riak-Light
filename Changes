@@ -1,8 +1,18 @@
+0.04 2013-05-14 21:21:27 GMT 
+   * Fix bug in SetSockOpt (Tiago Peczenyj)
+   * Add warnings in Alarm and TimeOut providers (not safe)
+   * Add OS type / version check for some providers (Win32, NetBSD)
+   * Improve test coverage
+   * IO::Select is the default timeout provider
+   * Fix tests and error strings (will work for other OS)
+   * Minimum perl 5.12
+   * Small improvements 
+
 0.03 2013-05-14 11:21:27 GMT 
-   * Improve setsockopt
+   * Improve setsockopt (Tiago Peczenyj)
    
 0.02 2013-05-13 13:16:08 GMT 
-   * Fix documentatio
+   * Fix documentatio (Tiago Peczenyj)
 
 0.01 2013-05-13 10:16:08 GMT 
-   * First version
+   * First version (Tiago Peczenyj)

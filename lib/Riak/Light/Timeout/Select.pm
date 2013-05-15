@@ -5,6 +5,7 @@ package Riak::Light::Timeout::Select;
 use POSIX qw(ETIMEDOUT ECONNRESET);
 use IO::Select;
 use Time::HiRes;
+use Config;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
@@ -76,14 +77,6 @@ sub syswrite {
 
 1;
 __END__
-
-=head1 NAME
-
-  Riak::Light::Timeout::Select -IO Timeout based on IO::Select for Riak::Light
-
-=head1 VERSION
-
-  version 0.001
 
 =head1 DESCRIPTION
   

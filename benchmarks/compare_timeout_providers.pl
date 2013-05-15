@@ -1,11 +1,12 @@
 use strict;
 use warnings;
 use Benchmark::Forking qw(timethis timethese cmpthese);
-
 use Net::Riak;
-use Riak::Light;
 use Time::Out qw(timeout);
 use Time::HiRes;
+use FindBin qw($Bin);
+use lib "$Bin/../lib";
+use Riak::Light;
 
 die "please set the RIAK_PBC_HOST variable" unless $ENV{RIAK_PBC_HOST};
 
@@ -13,7 +14,7 @@ my $hash = { baz => 1024, boom => [ 1, 2, 3, 4, 5, 1000 ] };
 
 my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
-my $riak_light_client1 = Riak::Light->new( host => $host, port => $port );
+my $riak_light_client1 = Riak::Light->new( host => $host, port => $port, timeout_provider => undef );
 my $riak_light_client2 = Riak::Light->new(
     host             => $host, port => $port,
     timeout_provider => 'Riak::Light::Timeout::Alarm'

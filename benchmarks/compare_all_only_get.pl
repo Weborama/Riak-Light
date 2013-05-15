@@ -3,10 +3,13 @@ use warnings;
 use Benchmark::Forking qw(timethis timethese cmpthese);
 
 use Net::Riak;
-use Riak::Light;
 use Time::Out qw(timeout);
 use Time::HiRes;
 use JSON;
+
+use FindBin qw($Bin);
+use lib "$Bin/../lib";
+use Riak::Light;
 
 die "please set the RIAK_PBC_HOST variable" unless $ENV{RIAK_PBC_HOST};
 
@@ -17,7 +20,7 @@ my ( $host_pbc, $port_pbc ) = split ':', $ENV{RIAK_PBC_HOST};
 my $http_host = "http://127.0.0.1:8098";
 
 my $riak_light_client1 =
-  Riak::Light->new( host => $host_pbc, port => $port_pbc );
+  Riak::Light->new( host => $host_pbc, port => $port_pbc, timeout_provider => undef);
 
 $riak_light_client1->put( foo_riak_light1 => key => $hash );
 

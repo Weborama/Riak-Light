@@ -11,8 +11,9 @@ use IO::Socket;
 use Const::Fast;
 use JSON;
 use Carp;
+use feature ':5.12';
 use Moo;
-use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
+use MooX::Types::MooseLike::Base qw<Num Str Int Bool Maybe>;
 use namespace::autoclean;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
@@ -35,8 +36,8 @@ sub _build_out_timeout {
     (shift)->timeout;
 }
 
-has timeout_provider =>
-  ( is => 'ro', isa => Str, default => sub {'IO::Socket::INET'} );
+has timeout_provider => ( is => 'ro', isa => Maybe [Str],
+    default => sub {'Riak::Light::Timeout::Select'} );
 
 has driver => ( is => 'lazy' );
 
@@ -61,10 +62,9 @@ sub _build_socket {
     croak "Error ($!), can't connect to $host:$port"
       unless defined $socket;
 
-    return $socket
-      if $socket->isa( $self->timeout_provider );
+    return $socket unless defined $self->timeout_provider;
 
-    use Module::Load;
+    use Module::Load qw(load);
     load $self->timeout_provider;
 
     # TODO: add a easy way to inject this proxy
@@ -79,24 +79,24 @@ sub BUILD {
     (shift)->driver;
 }
 
-const my $PING                => 'ping';
-const my $GET                 => 'get';
-const my $PUT                 => 'put';
-const my $DEL                 => 'del';
-const my $GET_KEYS            => 'get_keys';
+const my $PING     => 'ping';
+const my $GET      => 'get';
+const my $PUT      => 'put';
+const my $DEL      => 'del';
+const my $GET_KEYS => 'get_keys';
 
-const my $ERROR_RESPONSE_CODE => 0;
-const my $GET_RESPONSE_CODE   => 10;
+const my $ERROR_RESPONSE_CODE    => 0;
+const my $GET_RESPONSE_CODE      => 10;
 const my $GET_KEYS_RESPONSE_CODE => 18;
 
 sub _CODES {
     my $operation = shift;
 
     return {
-        $PING => { request_code => 1,  response_code => 2 },
-        $GET  => { request_code => 9,  response_code => 10 },
-        $PUT  => { request_code => 11, response_code => 12 },
-        $DEL  => { request_code => 13, response_code => 14 },
+        $PING     => { request_code => 1,  response_code => 2 },
+        $GET      => { request_code => 9,  response_code => 10 },
+        $PUT      => { request_code => 11, response_code => 12 },
+        $DEL      => { request_code => 13, response_code => 14 },
         $GET_KEYS => { request_code => 17, response_code => 18 },
     }->{$operation};
 }
@@ -122,14 +122,14 @@ sub is_alive {
 sub get_keys {
     my ( $self, $bucket, $callback ) =
       validate_pos( @_, 1, 1, { type => CODEREF } );
-      
-    my $body = RpbListKeysReq->encode({bucket => $bucket});
+
+    my $body = RpbListKeysReq->encode( { bucket => $bucket } );
     $self->_parse_response(
-      key => "*",
-      bucket => $bucket,
-      operation => $GET_KEYS,
-      body => $body,
-      extra => { callback => $callback },
+        key       => "*",
+        bucket    => $bucket,
+        operation => $GET_KEYS,
+        body      => $body,
+        extra     => { callback => $callback },
     );
 }
 
@@ -235,38 +235,42 @@ sub _parse_response {
     my $extra        = $args{extra};
     my $bucket       = $args{bucket};
     my $key          = $args{key};
-    my $callback     = $extra->{callback};           
+    my $callback     = $extra->{callback};
 
     $self->driver->perform_request(
         code => $request_code,
         body => $request_body
-    ) or return $self->_process_generic_error(
-        $ERRNO, $operation, $bucket, $key
-    );
-    
-    my $done = ! defined $callback;
+      )
+      or return $self->_process_generic_error( $ERRNO, $operation, $bucket,
+        $key );
+
+    my $done = $expected_code != $GET_KEYS_RESPONSE_CODE;
     my $response;
-    do{
-      $response = $self->driver->read_response();
+    do {
+        $response = $self->driver->read_response();
 
-      if ( !defined $response ) {
-          $response = { code => -1, body => undef, error => $ERRNO };
-          $done = 1;
-      } elsif(! $done && $response->{code} == $expected_code && $expected_code == $GET_KEYS_RESPONSE_CODE && defined $callback){
-          my $obj = RpbListKeysResp->decode($response->{body});
+        if ( !defined $response ) {
+            $response = { code => -1, body => undef, error => $ERRNO };
+            $done = 1;
+        }
+        elsif ( !$done
+            && $response->{code} == $GET_KEYS_RESPONSE_CODE )
+        {
+            my $obj = RpbListKeysResp->decode( $response->{body} );
 
-          my $keys = $obj->keys;
-          
-          if($keys){
-            $callback->($_) foreach(@{$keys});
-          }
-          
-          $done = $obj->done
-      } elsif(! $done ){
-        $done = 1;
-      }
-    } while(! $done );
-    
+            my $keys = $obj->keys;
+
+            if ($keys) {
+                $callback->($_) foreach ( @{$keys} );
+            }
+
+            $done = $obj->done;
+        }
+        elsif ( !$done ) {
+            $done = 1;
+        }
+    } while ( !$done );
+
     my $response_code  = $response->{code};
     my $response_body  = $response->{body};
     my $response_error = $response->{error};
@@ -304,7 +308,7 @@ sub _process_riak_fetch {
     $self->_process_generic_error( "Undefined Message", 'get', $bucket, $key )
       unless ( defined $encoded_message );
 
-    my $should_decode = ref($extra) eq 'HASH' && $extra->{decode};
+    my $should_decode   = $extra->{decode};
     my $decoded_message = RpbGetResp->decode($encoded_message);
 
     my $content = $decoded_message->content;
@@ -433,13 +437,17 @@ Timeout for write operations. Default is timeout value.
 
 Can change the backend for timeout. The default value is IO::Socket::INET and there is only support to connection timeout.
 IMPORTANT: in case of any timeout error, the socket between this client and the Riak server will be closed.
-To support I/O timeout you can choose 4 options:
+To support I/O timeout you can choose 5 options (or you can set undef to avoid IO Timeout):
 
 =over  
 
 =item * Riak::Light::Timeout::Alarm
 
-uses Time::Out and Time::HiRes to control the I/O timeout
+uses alarm and Time::HiRes to control the I/O timeout. Does not work on Win32. (Not Safe)
+
+=item * Riak::Light::Timeout::Time::Out
+
+uses Time::Out and Time::HiRes to control the I/O timeout. Does not work on Win32. (Not Safe)
 
 =item *  Riak::Light::Timeout::Select
 
@@ -447,11 +455,11 @@ uses IO::Select to control the I/O timeout
 
 =item *  Riak::Light::Timeout::SelectOnWrite
 
-uses IO::Select to control only Output Operations
+uses IO::Select to control only Output Operations. Can block in Write Operations. Be Careful.
 
 =item *  Riak::Light::Timeout::SetSockOpt
 
-uses setsockopt to set SO_RCVTIMEO and SO_SNDTIMEO socket properties. Experimental.
+uses setsockopt to set SO_RCVTIMEO and SO_SNDTIMEO socket properties. Does not Work on NetBSD 6.0.
 
 =back
 

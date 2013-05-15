@@ -5,6 +5,8 @@ package Riak::Light::Timeout::SelectOnRead;
 use POSIX qw(ETIMEDOUT ECONNRESET);
 use IO::Select;
 use Time::HiRes;
+use Config;
+use Carp;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
@@ -19,6 +21,9 @@ has select => ( is => 'ro', default => sub { IO::Select->new } );
 
 sub BUILD {
     my $self = shift;
+
+    #carp "Should block in Write Operations, be careful";
+
     $self->select->add( $self->socket );
 }
 

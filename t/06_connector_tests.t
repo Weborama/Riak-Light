@@ -1,9 +1,12 @@
-use Test::More tests => 3;
+use Test::More tests => 5;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light::Connector;
+require bytes;
 
-subtest "Connector should return false if can't send all bytes" => sub {
+subtest
+  "Connector should return false if can't send all bytes (return undef)" =>
+  sub {
     plan tests => 1;
     my $mock = Test::MockObject->new;
 
@@ -14,7 +17,22 @@ subtest "Connector should return false if can't send all bytes" => sub {
     $mock->set_false('syswrite');
 
     ok( !$connector->perform_request($message), "should return false" );
-};
+  };
+
+subtest
+  "Connector should return false if can't send all bytes (return 0 -- EOF)" =>
+  sub {
+    plan tests => 1;
+    my $mock = Test::MockObject->new;
+
+    my $connector = Riak::Light::Connector->new( socket => $mock );
+
+    my $message = pack( 'c a*', 1, q(lol) );
+
+    $mock->set_always( 'syswrite' => 0 );
+
+    ok( !$connector->perform_request($message), "should return false" );
+  };
 
 subtest "Connector should return false if can't read all bytes" => sub {
     plan tests => 2;
@@ -26,6 +44,21 @@ subtest "Connector should return false if can't read all bytes" => sub {
 
     $mock->set_always( syswrite => bytes::length($message) );
     $mock->set_false('sysread');
+
+    ok( $connector->perform_request($message), "should return true" );
+    ok( !$connector->read_response($message),  "should return false" );
+};
+
+subtest "Connector should return false if can't read all bytes (EOF)" => sub {
+    plan tests => 2;
+    my $mock = Test::MockObject->new;
+
+    my $connector = Riak::Light::Connector->new( socket => $mock );
+
+    my $message = pack( 'c a*', 1, q(lol) );
+
+    $mock->set_always( syswrite  => bytes::length($message) );
+    $mock->set_always( 'sysread' => 0 );
 
     ok( $connector->perform_request($message), "should return true" );
     ok( !$connector->read_response($message),  "should return false" );

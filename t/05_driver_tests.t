@@ -2,7 +2,7 @@ use Test::More tests => 2;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light::Driver;
-use POSIX qw(ETIMEDOUT);
+use POSIX qw(ETIMEDOUT strerror);
 
 subtest "should call perform_request and return a valid value" => sub {
     plan tests => 1;
@@ -33,6 +33,6 @@ subtest "should call perform_request and return a valid value" => sub {
     $driver->perform_request( body => q(), code => 1 );
     is_deeply(
         $driver->read_response(),
-        { error => 'Operation timed out', code => -1, body => undef }
+        { error => strerror(ETIMEDOUT), code => -1, body => undef }
     );
 };

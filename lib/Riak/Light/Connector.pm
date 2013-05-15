@@ -6,10 +6,6 @@ use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 require bytes;
 
-{
-    bytes::length();
-}
-
 # ABSTRACT: Riak Connector, abstraction to deal with binary messages
 
 has socket => ( is => 'ro', required => 1 );
@@ -86,14 +82,6 @@ sub _read_all {
 1;
 
 __END__
-
-=head1 NAME
-
-  Riak::Light::Connetor - Riak Connector for Riak::Light
-
-=head1 VERSION
-
-  version 0.001
 
 =head1 DESCRIPTION
   

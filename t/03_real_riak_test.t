@@ -16,7 +16,9 @@ subtest "simple get/set/delete test" => sub {
 
     my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
-    my $client = Riak::Light->new( host => $host, port => $port );
+    my $client =
+      Riak::Light->new( host => $host, port => $port,
+        timeout_provider => undef );
 
     my $scalar = '3.14159';
     my $hash = { baz => 1024 };
@@ -52,34 +54,36 @@ subtest "simple get/set/delete test" => sub {
 };
 
 subtest "get keys" => sub {
-  plan tests => 4;
-  
-  my $bucket = "foo_" . int(rand(1024)) . "_" . int(rand(1024));
-  
-  my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
+    plan tests => 4;
 
-  my $client = Riak::Light->new( host => $host, port => $port );
-  
-  my @keys;
-  $client->get_keys($bucket => sub { push @keys, $_[0]});
-  
-  foreach my $key (@keys) {
-    $client->del($bucket => $key);
-  }
-  my $hash = { a => 1 };
-  
-  $client->put( $bucket => "bar", $hash );
-  $client->put( $bucket => "baz", $hash );
-  $client->put( $bucket => "bam", $hash );
-  
-  @keys = ();
-  $client->get_keys($bucket => sub { push @keys, $_[0]});
-  
-  @keys = sort @keys;
-  is(scalar @keys, 3);
-  is($keys[0], 'bam');
-  is($keys[1], 'bar');
-  is($keys[2], 'baz');
+    my $bucket = "foo_" . int( rand(1024) ) . "_" . int( rand(1024) );
+
+    my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
+
+    my $client =
+      Riak::Light->new( host => $host, port => $port,
+        timeout_provider => undef );
+
+    my @keys;
+    $client->get_keys( $bucket => sub { push @keys, $_[0] } );
+
+    foreach my $key (@keys) {
+        $client->del( $bucket => $key );
+    }
+    my $hash = { a => 1 };
+
+    $client->put( $bucket => "bar", $hash );
+    $client->put( $bucket => "baz", $hash );
+    $client->put( $bucket => "bam", $hash );
+
+    @keys = ();
+    $client->get_keys( $bucket => sub { push @keys, $_[0] } );
+
+    @keys = sort @keys;
+    is( scalar @keys, 3 );
+    is( $keys[0],     'bam' );
+    is( $keys[1],     'bar' );
+    is( $keys[2],     'baz' );
 };
 
 subtest "sequence of 1024 get/set" => sub {
@@ -87,7 +91,9 @@ subtest "sequence of 1024 get/set" => sub {
 
     my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
-    my $client = Riak::Light->new( host => $host, port => $port );
+    my $client =
+      Riak::Light->new( host => $host, port => $port,
+        timeout_provider => undef );
 
     my $hash = {
         foo       => bar  => baz     => 123,

@@ -7,10 +7,13 @@ use Time::HiRes;
 use JSON;
 
 use Net::Riak;
-use Riak::Light;
 use Data::Riak;
 use Data::Riak::Fast;
 use Riak::Tiny;
+
+use FindBin qw($Bin);
+use lib "$Bin/../lib";
+use Riak::Light;
 
 die "please set the RIAK_PBC_HOST variable"  unless $ENV{RIAK_PBC_HOST};
 die "please set the RIAK_REST_HOST variable" unless $ENV{RIAK_REST_HOST};
@@ -24,7 +27,7 @@ my $hash = { baz => 1024, boom => [ 1, 2, 3, 4, 5, 1000, rand(1024) ] };
 #clients
 
 my $riak_light_client1 =
-  Riak::Light->new( host => $host_pbc, port => $port_pbc );
+  Riak::Light->new( host => $host_pbc, port => $port_pbc, timeout_provider => undef);
 
 $riak_light_client1->put( foo_riak_light1 => key => $hash );
 

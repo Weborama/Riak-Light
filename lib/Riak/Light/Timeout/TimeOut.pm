@@ -5,6 +5,8 @@ package Riak::Light::Timeout::TimeOut;
 use POSIX qw(ETIMEDOUT ECONNRESET);
 use Time::Out qw(timeout);
 use Time::HiRes;
+use Riak::Light::Util qw(is_windows);
+use Carp;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
 
@@ -16,6 +18,17 @@ has socket      => ( is => 'ro', required => 1 );
 has in_timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
 has out_timeout => ( is => 'ro', isa      => Num, default => sub {0.5} );
 has is_valid    => ( is => 'rw', isa      => Bool, default => sub {1} );
+
+sub BUILD {
+
+# from Time::Out documentation
+# alarm(2) doesn't interrupt blocking I/O on MSWin32, so 'timeout' won't do that either.
+
+    croak "Time::Out alarm(2) doesn't interrupt blocking I/O on MSWin32!"
+      if is_windows();
+
+    carp "Not Safe: can clobber previous alarm";
+}
 
 sub clean {
     my $self = shift;
@@ -74,14 +87,6 @@ sub syswrite {
 1;
 
 __END__
-
-=head1 NAME
-
-  Riak::Light::Timeout::TimeOut -IO Timeout based on Time::Out for Riak::Light
-
-=head1 VERSION
-
-  version 0.001
 
 =head1 DESCRIPTION
   
