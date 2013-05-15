@@ -1,6 +1,7 @@
 use Test::More tests => 2;
 use Test::Exception;
 use Test::MockObject;
+use Test::MockModule;
 use Riak::Light;
 use Test::TCP;
 
@@ -35,6 +36,9 @@ subtest "should not die if can connect" => sub {
 subtest "should die if cant connect" => sub {
     plan tests => 1;
 
+    my $mockmodule = Test::MockModule->new('IO::Socket::INET');
+    $mockmodule->mock(new => sub { undef });
+    
     throws_ok {
         Riak::Light->new(
             host => 'do.not.exist',

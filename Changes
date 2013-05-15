@@ -1,3 +1,6 @@
+0.051 2013-05-15 18:31:08 GMT 
+   * Fix test
+
 0.05 2013-05-15 17:31:08 GMT 
    * Fix bug in EOF
    * add exists method, to test if there is some bucket => key
