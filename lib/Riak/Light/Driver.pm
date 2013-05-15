@@ -49,7 +49,7 @@ sub _parse_response {
 }
 
 sub _parse_error {
-    { code => -1, body => undef, error => $ERRNO };
+    { code => -1, body => undef, error => $ERRNO || "Socket Closed" };
 }
 
 1;

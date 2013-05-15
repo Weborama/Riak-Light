@@ -2,6 +2,7 @@
 package Riak::Light;
 ## use critic
 
+use 5.012000;
 use Riak::Light::PBC;
 use Riak::Light::Driver;
 use Params::Validate qw(validate_pos SCALAR CODEREF);
@@ -11,7 +12,6 @@ use IO::Socket;
 use Const::Fast;
 use JSON;
 use Carp;
-use feature ':5.12';
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Maybe>;
 use namespace::autoclean;
@@ -143,13 +143,21 @@ sub get {
     $self->_fetch( $bucket, $key, decode => 1 );
 }
 
+sub exists {
+    my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+    defined $self->_fetch( $bucket, $key, decode => 0, head => 1);  
+}
+
 sub _fetch {
     my ( $self, $bucket, $key, %extra ) = @_;
 
+    my $head = $extra{head};
+    
     my $body = RpbGetReq->encode(
         {   r      => $self->r,
             key    => $key,
-            bucket => $bucket
+            bucket => $bucket,
+            head   => $head
         }
     );
 
@@ -315,7 +323,7 @@ sub _process_riak_fetch {
     if ( ref($content) eq 'ARRAY' ) {
         my $value        = $content->[0]->value;
         my $content_type = $content->[0]->content_type;
-
+        
         return ( $content_type eq 'application/json' and $should_decode )
           ? decode_json($value)
           : $value;
@@ -493,6 +501,12 @@ Perform a fetch operation. Expects bucket and key names. Decode the json into a 
   my $scalar_value = $client->get_raw(bucket => 'key');
 
 Perform a fetch operation. Expects bucket and key names. Return the raw data. If you need decode the json, you should use L<get> instead.
+
+=head3 exists
+
+  $client->exists(bucket => 'key') or warn "key not found";
+  
+Perform a fetch operation but with head => 0, and the if there is something stored in the bucket/key.
 
 =head3 put
 

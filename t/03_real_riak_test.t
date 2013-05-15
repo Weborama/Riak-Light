@@ -12,7 +12,7 @@ use Riak::Light;
 use JSON;
 
 subtest "simple get/set/delete test" => sub {
-    plan tests => 10;
+    plan tests => 12;
 
     my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
@@ -40,8 +40,10 @@ subtest "simple get/set/delete test" => sub {
         "should fetch the raw scalar from Riak"
     );
 
+    ok( $client->exists(foo => 'bar'), "should exists");
     ok( $client->del( foo => 'bar' ), "should delete the hashref" );
     ok( !$client->get( foo => 'bar' ), "should fetch UNDEF from Riak" );
+    ok( !$client->exists(foo => 'bar'), "should not exists");
 
     ok( $client->put( foo => "baz", 'TEXT', 'plain/text' ),
         "should store the text in Riak"

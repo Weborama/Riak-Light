@@ -1,3 +1,7 @@
+0.05 2013-05-15 17:31:08 GMT 
+   * Fix bug in EOF
+   * add exists method, to test if there is some bucket => key
+
 0.04 2013-05-14 21:21:27 GMT 
    * Fix bug in SetSockOpt (Tiago Peczenyj)
    * Add warnings in Alarm and TimeOut providers (not safe)
