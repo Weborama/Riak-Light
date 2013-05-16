@@ -15,16 +15,21 @@ Fast and lightweight Perl client for Riak
     # will serializer as 'application/json'
     $client->put( foo => bar => { baz => 1024 });
     
-    # store text into bucket 'foo', key 'bar'
+    # store text into bucket 'foo', key 'bar' 
     $client->put( foo => baz => "sometext", 'text/plain');
+    $client->put_raw( foo => baz => "sometext");  # does not encode !
 
     # fetch hashref from bucket 'foo', key 'bar'
     my $hash = $client->get( foo => 'bar');
+    my $text = $client->get_raw( foo => 'baz');   # does not decode !
 
     # delete hashref from bucket 'foo', key 'bar'
     $client->del(foo => 'bar');
     
-    # list keys in stream
+    # check if exists (like get but using less bytes in the response)
+    $client->exists(foo => 'baz') or warn "ops, foo => bar does not exist";
+    
+    # list keys in stream (callback only)
     $client->get_keys(foo => sub{
        my $key = $_[0];
        
@@ -56,7 +61,7 @@ Test Coverage
 Simple Benchmark
 ================
 
-Using Perl 5.12.2 under MacOSX 10.8.3 / 4GB Ram / 2.4 GHz Intel Core 2 Duo and riak 1.3.0
+Using Perl 5.12.2 under MacOSX 10.8.3 / 4GB Ram / 2.4 GHz Intel Core 2 Duo and Riak 1.3.0 (localhost)
 
 Only GET (`benchmark/compare_all_only_get.pl`)
  
