@@ -14,7 +14,8 @@ my $hash = { baz => 1024, boom => [ 1, 2, 3, 4, 5, 1000 ] };
 
 my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
-my $riak_light_client1 = Riak::Light->new( host => $host, port => $port, timeout_provider => undef );
+my $riak_light_client1 =
+  Riak::Light->new( host => $host, port => $port, timeout_provider => undef );
 my $riak_light_client2 = Riak::Light->new(
     host             => $host, port => $port,
     timeout_provider => 'Riak::Light::Timeout::Alarm'

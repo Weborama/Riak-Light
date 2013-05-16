@@ -2,7 +2,7 @@
 package Riak::Light;
 ## use critic
 
-use 5.012000;
+use 5.008;
 use Riak::Light::PBC;
 use Riak::Light::Driver;
 use Params::Validate qw(validate_pos SCALAR CODEREF);
@@ -14,7 +14,6 @@ use JSON;
 use Carp;
 use Moo;
 use MooX::Types::MooseLike::Base qw<Num Str Int Bool Maybe>;
-use namespace::autoclean;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
 
@@ -36,8 +35,10 @@ sub _build_out_timeout {
     (shift)->timeout;
 }
 
-has timeout_provider => ( is => 'ro', isa => Maybe [Str],
-    default => sub {'Riak::Light::Timeout::Select'} );
+has timeout_provider => (
+    is => 'ro', isa => Maybe [Str],
+    default => sub {'Riak::Light::Timeout::Select'}
+);
 
 has driver => ( is => 'lazy' );
 
@@ -145,14 +146,14 @@ sub get {
 
 sub exists {
     my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
-    defined $self->_fetch( $bucket, $key, decode => 0, head => 1);  
+    defined $self->_fetch( $bucket, $key, decode => 0, head => 1 );
 }
 
 sub _fetch {
     my ( $self, $bucket, $key, %extra ) = @_;
 
     my $head = $extra{head};
-    
+
     my $body = RpbGetReq->encode(
         {   r      => $self->r,
             key    => $key,
@@ -249,8 +250,10 @@ sub _parse_response {
         code => $request_code,
         body => $request_body
       )
-      or return $self->_process_generic_error( $ERRNO, $operation, $bucket,
-        $key );
+      or return $self->_process_generic_error(
+        $ERRNO, $operation, $bucket,
+        $key
+      );
 
     my $done = $expected_code != $GET_KEYS_RESPONSE_CODE;
     my $response;
@@ -323,7 +326,7 @@ sub _process_riak_fetch {
     if ( ref($content) eq 'ARRAY' ) {
         my $value        = $content->[0]->value;
         my $content_type = $content->[0]->content_type;
-        
+
         return ( $content_type eq 'application/json' and $should_decode )
           ? decode_json($value)
           : $value;
@@ -355,6 +358,7 @@ sub _process_generic_error {
       : q();
 
     my $error_message = "Error in '$operation' $extra: $error";
+
     croak $error_message if $self->autodie;
 
     $@ = $error_message;    ## no critic (RequireLocalizedPunctuationVars)
@@ -382,16 +386,21 @@ __END__
   # will serializer as 'application/json'
   $client->put( foo => bar => { baz => 1024 });
 
-  # store text into bucket 'foo', key 'bar'
+  # store text into bucket 'foo', key 'bar' 
   $client->put( foo => baz => "sometext", 'text/plain');
+  $client->put_raw( foo => baz => "sometext");  # does not encode !
 
   # fetch hashref from bucket 'foo', key 'bar'
   my $hash = $client->get( foo => 'bar');
+  my $text = $client->get_raw( foo => 'baz');   # does not decode !
 
   # delete hashref from bucket 'foo', key 'bar'
   $client->del(foo => 'bar');
 
-  # list keys in stream
+  # check if exists (like get but using less bytes in the response)
+  $client->exists(foo => 'baz') or warn "ops, foo => bar does not exist";
+
+  # list keys in stream (callback only)
   $client->get_keys(foo => sub{
      my $key = $_[0];
 

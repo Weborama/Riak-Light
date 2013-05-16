@@ -20,7 +20,8 @@ my ( $host_pbc, $port_pbc ) = split ':', $ENV{RIAK_PBC_HOST};
 my $http_host = "http://127.0.0.1:8098";
 
 my $riak_light_client1 =
-  Riak::Light->new( host => $host_pbc, port => $port_pbc, timeout_provider => undef);
+  Riak::Light->new( host => $host_pbc, port => $port_pbc,
+    timeout_provider => undef );
 
 $riak_light_client1->put( foo_riak_light1 => key => $hash );
 

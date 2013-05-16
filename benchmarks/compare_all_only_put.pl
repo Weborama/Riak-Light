@@ -27,7 +27,8 @@ my $hash = { baz => 1024, boom => [ 1, 2, 3, 4, 5, 1000, rand(1024) ] };
 #clients
 
 my $riak_light_client1 =
-  Riak::Light->new( host => $host_pbc, port => $port_pbc, timeout_provider => undef);
+  Riak::Light->new( host => $host_pbc, port => $port_pbc,
+    timeout_provider => undef );
 
 $riak_light_client1->put( foo_riak_light1 => key => $hash );
 

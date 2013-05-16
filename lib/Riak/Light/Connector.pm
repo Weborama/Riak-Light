@@ -11,7 +11,7 @@ require bytes;
 has socket => ( is => 'ro', required => 1 );
 
 sub perform_request {
-    my ( $self, $message ) = @_;    
+    my ( $self, $message ) = @_;
     my $bytes = pack( 'N a*', bytes::length($message), $message );
 
     $self->_send_all($bytes);    # send request
@@ -65,7 +65,7 @@ sub _read_all {
     my $readed = 0;
     do {
         $readed = $self->socket->sysread( $buffer, $bufsiz, $offset );
-        
+
         # error in $!
         return unless defined $readed;
 

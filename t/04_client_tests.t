@@ -7,56 +7,54 @@ use POSIX qw(ETIMEDOUT strerror);
 use JSON;
 
 subtest "exists" => sub {
-  plan tests => 2;
-  
-  subtest "should return false if the key does not exist" => sub {
-    plan tests => 1;
-    my $mock = Test::MockObject->new;
+    plan tests => 2;
 
-    my $mock_response = {
-        error => undef,
-        code  => 10,
-        body  => RpbGetResp->encode(
-            {   content => undef }
-        )
+    subtest "should return false if the key does not exist" => sub {
+        plan tests => 1;
+        my $mock = Test::MockObject->new;
+
+        my $mock_response = {
+            error => undef,
+            code  => 10,
+            body  => RpbGetResp->encode( { content => undef } )
+        };
+
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
+
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
+
+        ok( !$client->exists( foo => "bar" ) );
     };
+    subtest "should return true if the key exist" => sub {
+        plan tests => 1;
+        my $mock = Test::MockObject->new;
 
-    $mock->set_true('perform_request');
-    $mock->set_always( read_response => $mock_response );
-
-    my $client = Riak::Light->new(
-        host   => 'host', port => 1234, autodie => 1,
-        driver => $mock
-    );
-    
-    ok(! $client->exists(foo => "bar"));
-  };
-  subtest "should return true if the key exist" => sub {
-    plan tests => 1;
-    my $mock = Test::MockObject->new;
-
-    my $mock_response = {
-        error => undef,
-        code  => 10,
-        body  => RpbGetResp->encode(
-            {   content => {
-                    value        => q(),
-                    content_type => 'application/json'
+        my $mock_response = {
+            error => undef,
+            code  => 10,
+            body  => RpbGetResp->encode(
+                {   content => {
+                        value        => q(),
+                        content_type => 'application/json'
+                    }
                 }
-            }
-        )
+            )
+        };
+
+        $mock->set_true('perform_request');
+        $mock->set_always( read_response => $mock_response );
+
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
+
+        ok( $client->exists( foo => "bar" ) );
     };
-
-    $mock->set_true('perform_request');
-    $mock->set_always( read_response => $mock_response );
-
-    my $client = Riak::Light->new(
-        host   => 'host', port => 1234, autodie => 1,
-        driver => $mock
-    );
-    
-    ok( $client->exists(foo => "bar"));    
-  };    
 };
 
 subtest "ping" => sub {

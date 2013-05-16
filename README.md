@@ -65,13 +65,13 @@ Using Perl 5.12.2 under MacOSX 10.8.3 / 4GB Ram / 2.4 GHz Intel Core 2 Duo and R
 
 Only GET (`benchmark/compare_all_only_get.pl`)
  
-                           Rate Data::Riak (REST) Net::Riak (REST) Riak::Tiny (REST) Data::Riak::Fast (REST) Net::Riak (PBC) Riak::Light (PBC)
-    Data::Riak (REST)        303/s                --             -29%              -38%                    -45%            -66%              -90%
-    Net::Riak (REST)         425/s               40%               --              -13%                    -23%            -53%              -86%
-    Riak::Tiny (REST)        485/s               60%              14%                --                    -12%            -46%              -84%
-    Data::Riak::Fast (REST)  553/s               82%              30%               14%                      --            -38%              -82%
-    Net::Riak (PBC)          899/s              196%             112%               85%                     62%              --              -71%
-    Riak::Light (PBC)       3125/s              930%             636%              544%                    465%            248%                --
+                             Rate Data::Riak (REST) Net::Riak (REST) Riak::Tiny (REST) Data::Riak::Fast (REST) Net::Riak (PBC) Riak::Light (PBC)
+    Data::Riak (REST)        318/s                --             -33%              -42%                    -46%            -69%              -92%
+    Net::Riak (REST)         478/s               50%               --              -12%                    -20%            -54%              -87%
+    Riak::Tiny (REST)        544/s               71%              14%                --                     -8%            -47%              -86%
+    Data::Riak::Fast (REST)  594/s               87%              24%                9%                      --            -42%              -84%
+    Net::Riak (PBC)         1031/s              224%             116%               89%                     73%              --              -73%
+    Riak::Light (PBC)       3774/s             1086%             690%              593%                    535%            266%                --               --
  
 Only PUT (`benchmark/compare_all_only_put.pl`)
 

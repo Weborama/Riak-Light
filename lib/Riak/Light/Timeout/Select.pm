@@ -53,7 +53,7 @@ around [qw(sysread syswrite)] => sub {
 
 sub sysread {
     my $self = shift;
-    
+
     return $self->socket->sysread(@_)
       if $self->select->can_read( $self->in_timeout );
 
