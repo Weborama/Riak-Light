@@ -1,18 +1,10 @@
-use Test::More tests => 7;
+use Test::More tests => 6;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
 use Riak::Light::PBC;
 use POSIX qw(ETIMEDOUT strerror);
 use JSON;
-
-subtest "error handling" => sub {
-    plan tests => 1;
-
-    dies_ok {
-        Riak::Light->new( host => 'not.exist', port => 9999 );
-    };
-};
 
 subtest "exists" => sub {
   plan tests => 2;

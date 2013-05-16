@@ -56,6 +56,8 @@ Test Coverage
 Simple Benchmark
 ================
 
+Using Perl 5.12.2 under MacOSX 10.8.3 / 4GB Ram / 2.4 GHz Intel Core 2 Duo and riak 1.3.0
+
 Only GET (`benchmark/compare_all_only_get.pl`)
  
                            Rate Data::Riak (REST) Net::Riak (REST) Riak::Tiny (REST) Data::Riak::Fast (REST) Net::Riak (PBC) Riak::Light (PBC)
