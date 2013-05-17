@@ -3,6 +3,7 @@ Riak-Light
 
 Fast and lightweight Perl client for Riak
 
+```perl
     # create a new instance - using pbc only
     my $client = Riak::Light->new(
       host => '127.0.0.1',
@@ -36,6 +37,16 @@ Fast and lightweight Perl client for Riak
        # you should use another client inside this callback!
        $another_client->del(foo => $key);
     });
+```
+
+Install
+=======
+
+It is available on CPAN
+
+    cpan Riak::Light
+    
+https://metacpan.org/release/Riak-Light/
 
 Test Coverage
 =============
