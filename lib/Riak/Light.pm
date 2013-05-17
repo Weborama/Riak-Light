@@ -242,7 +242,8 @@ sub _parse_response {
     my $key          = $args{key};
     my $callback     = $extra->{callback};
     
-    undef $@;    ## no critic (RequireLocalizedPunctuationVars)
+    $self->autodie
+      or undef $@;    ## no critic (RequireLocalizedPunctuationVars)
 
     $self->driver->perform_request(
         code => $request_code,
