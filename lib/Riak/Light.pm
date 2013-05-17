@@ -102,10 +102,6 @@ sub _CODES {
     }->{$operation};
 }
 
-before [qw(ping get put del)] => sub {
-    undef $@    ## no critic (RequireLocalizedPunctuationVars)
-};
-
 sub ping {
     my $self = shift;
     $self->_parse_response(
@@ -234,7 +230,7 @@ sub del {
 
 sub _parse_response {
     my ( $self, %args ) = @_;
-
+    
     my $operation = $args{operation};
 
     my $request_code  = _CODES($operation)->{request_code};
@@ -245,6 +241,8 @@ sub _parse_response {
     my $bucket       = $args{bucket};
     my $key          = $args{key};
     my $callback     = $extra->{callback};
+    
+    undef $@;    ## no critic (RequireLocalizedPunctuationVars)
 
     $self->driver->perform_request(
         code => $request_code,
