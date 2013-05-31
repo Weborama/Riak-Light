@@ -53,18 +53,6 @@ sub _set_so_sndtimeo {
       or croak "setsockopt(SO_SNDTIMEO): $!";
 }
 
-around [qw(sysread syswrite)] => sub {
-    my $orig = shift;
-    my $self = shift;
-
-    if ( !$self->is_valid ) {
-        $! = ECONNRESET;    ## no critic (RequireLocalizedPunctuationVars)
-        return;
-    }
-
-    $self->$orig(@_);
-};
-
 sub clean {
     my $self = shift;
     $self->socket->close();
@@ -74,6 +62,7 @@ sub clean {
 
 sub sysread {
     my $self = shift;
+    $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
     my $result = $self->socket->sysread(@_);
 
@@ -84,6 +73,7 @@ sub sysread {
 
 sub syswrite {
     my $self = shift;
+    $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
     my $result = $self->socket->syswrite(@_);
 

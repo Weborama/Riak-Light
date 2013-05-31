@@ -36,20 +36,9 @@ sub clean {
     $self->is_valid(0);
 }
 
-around [qw(sysread syswrite)] => sub {
-    my $orig = shift;
-    my $self = shift;
-
-    if ( !$self->is_valid ) {
-        $! = ECONNRESET;    ## no critic (RequireLocalizedPunctuationVars)
-        return;
-    }
-
-    $self->$orig(@_);
-};
-
 sub sysread {
     my $self = shift;
+    $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
     my $buffer;
     my $seconds = $self->in_timeout;
@@ -71,6 +60,7 @@ sub sysread {
 
 sub syswrite {
     my $self = shift;
+    $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
     my $seconds = $self->out_timeout;
     my $result = timeout $seconds, @_ => sub {

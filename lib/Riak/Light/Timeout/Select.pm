@@ -39,20 +39,10 @@ sub is_valid {
     scalar $self->select->handles;
 }
 
-around [qw(sysread syswrite)] => sub {
-    my $orig = shift;
-    my $self = shift;
-
-    if ( !$self->is_valid ) {
-        $! = ECONNRESET;    ## no critic (RequireLocalizedPunctuationVars)
-        return;
-    }
-
-    $self->$orig(@_);
-};
-
 sub sysread {
     my $self = shift;
+
+    $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
     return $self->socket->sysread(@_)
       if $self->select->can_read( $self->in_timeout );
@@ -65,6 +55,8 @@ sub sysread {
 
 sub syswrite {
     my $self = shift;
+
+    $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
     return $self->socket->syswrite(@_)
       if $self->select->can_write( $self->out_timeout );

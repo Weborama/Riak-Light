@@ -13,6 +13,7 @@ use IO::Socket;
 use Const::Fast;
 use JSON;
 use Carp;
+use Module::Runtime qw(use_module);
 use Moo;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
