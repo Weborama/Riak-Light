@@ -1,3 +1,6 @@
+0.057 2013-05-30 15:27:08 GMT 
+   * Cleanups, speedups, refactoring (Damien Krotkine)
+
 0.056 2013-05-17 08:18:08 GMT 
    * bugfix clean $@ before all methods [issue #9] (Tiago Peczenyj)
 
