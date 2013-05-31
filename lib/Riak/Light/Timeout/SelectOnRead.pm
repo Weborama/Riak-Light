@@ -20,28 +20,23 @@ has out_timeout => ( is => 'ro', isa      => Num, default => sub {0.5} );
 has select => ( is => 'ro', default => sub { IO::Select->new } );
 
 sub BUILD {
-    my $self = shift;
-
     #carp "Should block in Write Operations, be careful";
 
-    $self->select->add( $self->socket );
+    $_[0]->select->add( $_[0]->socket );
 }
 
 sub DEMOLISH {
-    my $self = shift;
-    $self->clean();
+    $_[0]->clean();
 }
 
 sub clean {
-    my $self = shift;
-    $self->select->remove( $self->socket );
-    $self->socket->close;
+    $_[0]->select->remove( $_[0]->socket );
+    $_[0]->socket->close;
     $! = ETIMEDOUT;    ## no critic (RequireLocalizedPunctuationVars)
 }
 
 sub is_valid {
-    my $self = shift;
-    scalar $self->select->handles;
+    scalar $_[0]->select->handles;
 }
 
 sub sysread {

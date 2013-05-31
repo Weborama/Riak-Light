@@ -31,9 +31,8 @@ sub BUILD {
 }
 
 sub clean {
-    my $self = shift;
-    $self->socket->close;
-    $self->is_valid(0);
+    $_[0]->socket->close;
+    $_[0]->is_valid(0);
 }
 
 sub sysread {
