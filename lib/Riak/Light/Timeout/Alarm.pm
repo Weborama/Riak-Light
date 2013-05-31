@@ -7,7 +7,7 @@ use Time::HiRes qw(alarm);
 use Riak::Light::Util qw(is_windows);
 use Carp;
 use Moo;
-use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
+use Types::Standard -types;
 with 'Riak::Light::Timeout';
 
 # ABSTRACT: proxy to read/write using Alarm as a timeout provider ( Not Safe: can clobber previous alarm )

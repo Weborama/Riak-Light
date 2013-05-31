@@ -3,7 +3,7 @@ package Riak::Light::Connector;
 ## use critic
 
 use Moo;
-use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
+use Types::Standard -types;
 require bytes;
 
 # ABSTRACT: Riak Connector, abstraction to deal with binary messages

@@ -8,7 +8,7 @@ use Time::HiRes;
 use Config;
 use Carp;
 use Moo;
-use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
+use Types::Standard -types;
 
 with 'Riak::Light::Timeout';
 

@@ -2,10 +2,11 @@
 package Riak::Light;
 ## use critic
 
-use 5.008;
+use 5.010;
 use Riak::Light::PBC;
 use Riak::Light::Driver;
-use Params::Validate qw(validate_pos SCALAR CODEREF);
+use Type::Params qw(compile);
+use Types::Standard -types;
 use English qw(-no_match_vars );
 use Scalar::Util qw(blessed);
 use IO::Socket;
@@ -13,7 +14,6 @@ use Const::Fast;
 use JSON;
 use Carp;
 use Moo;
-use MooX::Types::MooseLike::Base qw<Num Str Int Bool Maybe>;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
 
@@ -117,8 +117,8 @@ sub is_alive {
 }
 
 sub get_keys {
-    my ( $self, $bucket, $callback ) =
-      validate_pos( @_, 1, 1, { type => CODEREF } );
+    state $check = compile(Any, Str, CodeRef);
+    my ( $self, $bucket, $callback ) = $check->(@_);
 
     my $body = RpbListKeysReq->encode( { bucket => $bucket } );
     $self->_parse_response(
@@ -131,17 +131,20 @@ sub get_keys {
 }
 
 sub get_raw {
-    my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+    state $check = compile(Any, Str, Str);
+    my ( $self, $bucket, $key ) = $check->(@_);
     $self->_fetch( $bucket, $key, decode => 0 );
 }
 
 sub get {
-    my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+    state $check = compile(Any, Str, Str);
+    my ( $self, $bucket, $key ) = $check->(@_);
     $self->_fetch( $bucket, $key, decode => 1 );
 }
 
 sub exists {
-    my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+    state $check = compile(Any, Str, Str);
+    my ( $self, $bucket, $key ) = $check->(@_);
     defined $self->_fetch( $bucket, $key, decode => 0, head => 1 );
 }
 
@@ -168,17 +171,16 @@ sub _fetch {
 }
 
 sub put_raw {
-    my ( $self, $bucket, $key, $value, $content_type ) = validate_pos(
-        @_, 1, 1, 1, { type => SCALAR },
-        { default => 'plain/text' }
-    );
-
+    state $check = compile(Any, Str, Str, Any, Optional[Str]);
+    my ( $self, $bucket, $key, $value, $content_type ) = $check->(@_);
+    $content_type ||= 'plain/text';
     $self->_store( $bucket, $key, $value, $content_type );
 }
 
 sub put {
-    my ( $self, $bucket, $key, $value, $content_type ) =
-      validate_pos( @_, 1, 1, 1, 1, { default => 'application/json' } );
+    state $check = compile(Any, Str, Str, Any, Optional[Str]);
+    my ( $self, $bucket, $key, $value, $content_type ) = $check->(@_);
+    $content_type ||= 'application/json';
 
     my $encoded_value =
       ( $content_type eq 'application/json' )
@@ -189,8 +191,7 @@ sub put {
 }
 
 sub _store {
-    my ( $self, $bucket, $key, $encoded_value, $content_type ) =
-      validate_pos( @_, 1, 1, 1, { type => SCALAR }, 1 );
+    my ( $self, $bucket, $key, $encoded_value, $content_type ) = @_;
 
     my $body = RpbPutReq->encode(
         {   key     => $key,
@@ -211,7 +212,8 @@ sub _store {
 }
 
 sub del {
-    my ( $self, $bucket, $key ) = validate_pos( @_, 1, 1, 1 );
+    state $check = compile(Any, Str, Str);
+    my ( $self, $bucket, $key ) = $check->(@_);
 
     my $body = RpbDelReq->encode(
         {   key    => $key,

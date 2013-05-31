@@ -5,7 +5,7 @@ package Riak::Light::Driver;
 use English qw( -no_match_vars );
 use Riak::Light::Connector;
 use Moo;
-use MooX::Types::MooseLike::Base qw<Num Str Int Bool Object>;
+use Types::Standard -types;
 
 # ABSTRACT: Riak Driver, deal with the binary protocol
 
