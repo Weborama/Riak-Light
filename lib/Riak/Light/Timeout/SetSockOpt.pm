@@ -6,14 +6,14 @@ use POSIX qw(ETIMEDOUT ECONNRESET);
 use Socket;
 use IO::Select;
 use Time::HiRes;
-use Riak::Light::Util qw(is_netbsd_6_32bits is_solaris);
+use Riak::Light::Util qw(is_netbsd is_solaris);
 use Carp;
 use Moo;
 use Types::Standard -types;
 
 with 'Riak::Light::Timeout';
 
-# ABSTRACT: proxy to read/write using IO::Select as a timeout provider only for READ operations. EXPERIMENTAL!
+# ABSTRACT: proxy to read/write using IO::Select as a timeout provider only for READ operations.
 
 has socket      => ( is => 'ro', required => 1 );
 has in_timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
@@ -24,7 +24,7 @@ sub BUILD {
     # carp "This Timeout Provider is EXPERIMENTAL!";
 
     croak "NetBSD no supported yet"
-      if is_netbsd_6_32bits();
+      if is_netbsd();
     ## TODO: see https://metacpan.org/source/ZWON/RedisDB-2.12/lib/RedisDB.pm#L235
       
     croak "Solaris is not supported"

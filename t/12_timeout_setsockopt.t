@@ -21,6 +21,7 @@ subtest "test die under solaris" => sub {
     use Riak::Light::Timeout::SetSockOpt;
     my $module = Test::MockModule->new('Riak::Light::Timeout::SetSockOpt');
 
+    $module->mock( is_netbsd => 0 );
     $module->mock( is_solaris => 1 );
 
     throws_ok {
@@ -35,7 +36,7 @@ subtest "test die under netbsd 6" => sub {
     use Riak::Light::Timeout::SetSockOpt;
     my $module = Test::MockModule->new('Riak::Light::Timeout::SetSockOpt');
 
-    $module->mock( is_netbsd_6_32bits => 1 );
+    $module->mock( is_netbsd => 1 );
 
     throws_ok {
         Riak::Light::Timeout::SetSockOpt->new( socket => undef );
