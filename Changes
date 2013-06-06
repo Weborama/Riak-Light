@@ -1,3 +1,9 @@
+0.059 2013-06-06 16:27:08 GMT 
+   * Refactor util class. (Tiago Peczenyj)
+
+0.058 2013-06-06 15:27:08 GMT 
+   * Small refactor, fix small things, fix solaris support. (Tiago Peczenyj)
+
 0.057 2013-05-30 15:27:08 GMT 
    * Cleanups, speedups, refactoring (Damien Krotkine)
 
