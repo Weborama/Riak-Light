@@ -47,8 +47,8 @@ subtest "new and other attrs values" => sub {
     is( $client->dw,      1,   "dw should be 1" );
     ok( $client->autodie,          "autodie should be true" );
     ok( $client->timeout_provider, 'Riak::Light::Timeout::TimeOut' );
-    ok( $client->in_timeout,  2);
-    ok( $client->out_timeout, 4);
+    is( $client->in_timeout,  2);
+    is( $client->out_timeout, 4);
 };
 
 subtest "should be a riak::light instance" => sub {
