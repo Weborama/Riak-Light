@@ -23,10 +23,23 @@ has host    => ( is => 'ro', isa => Str,  required => 1 );
 has r       => ( is => 'ro', isa => Int,  default  => sub {2} );
 has w       => ( is => 'ro', isa => Int,  default  => sub {2} );
 has dw      => ( is => 'ro', isa => Int,  default  => sub {2} );
-has autodie => ( is => 'ro', isa => Bool, default  => sub {1} );
+has autodie => ( is => 'ro', isa => Bool, default  => sub {1}, trigger => 1 );
 has timeout => ( is => 'ro', isa => Num,  default  => sub {0.5} );
-has in_timeout  => ( is => 'lazy' );
-has out_timeout => ( is => 'lazy' );
+has in_timeout  => ( is => 'lazy', trigger => 1 );
+has out_timeout => ( is => 'lazy', trigger => 1 );
+
+sub _trigger_autodie {
+  my ($self, $value) = @_;
+  carp "autodie will be disable in the next version" unless $value;
+}
+
+sub _trigger_in_timeout {
+  carp "this feature will be disabled in the next version, you should use just timeout instead";
+}
+
+sub _trigger_out_timeout {
+  carp "this feature will be disabled in the next version, you should use just timeout instead";
+}
 
 sub _build_in_timeout {
     $_[0]->timeout;

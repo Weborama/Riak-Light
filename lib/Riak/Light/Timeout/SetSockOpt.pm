@@ -6,7 +6,7 @@ use POSIX qw(ETIMEDOUT ECONNRESET);
 use Socket;
 use IO::Select;
 use Time::HiRes;
-use Riak::Light::Util qw(is_netbsd_6_32bits);
+use Riak::Light::Util qw(is_netbsd_6_32bits is_solaris);
 use Carp;
 use Moo;
 use Types::Standard -types;
@@ -26,7 +26,10 @@ sub BUILD {
     croak "NetBSD no supported yet"
       if is_netbsd_6_32bits();
     ## TODO: see https://metacpan.org/source/ZWON/RedisDB-2.12/lib/RedisDB.pm#L235
-
+      
+    croak "Solaris is not supported"
+      if is_solaris();
+    
     $_[0]->_set_so_rcvtimeo();
     $_[0]->_set_so_sndtimeo();
 }

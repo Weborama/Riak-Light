@@ -4,7 +4,7 @@ package Riak::Light::Util;
 use Config;
 use Exporter 'import';
 
-@EXPORT_OK = qw(is_windows is_netbsd_6_32bits);
+@EXPORT_OK = qw(is_windows is_netbsd_6_32bits is_solaris);
 
 sub is_windows {
     $Config{osname} eq 'MSWin32';
@@ -16,6 +16,10 @@ sub is_netbsd_6_32bits {
 
 sub _is_netbsd {
     $Config{osname} eq 'netbsd';
+}
+
+sub is_solaris {
+    $Config{osname} eq 'solaris';
 }
 
 1;
