@@ -4,6 +4,8 @@ package Riak::Light::Util;
 use Config;
 use Exporter 'import';
 
+#ABSTRACT: util class, provides is_windows, is_solaris, etc
+
 @EXPORT_OK = qw(is_windows is_netbsd_6_32bits is_solaris);
 
 sub is_windows {
