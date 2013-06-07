@@ -129,4 +129,4 @@ Features
 * support list keys (ok)
 * debug/trace mode (to do)
 * refactor to use Moo::Roles instead other objects (to do)
-* extract timeout provider to an external project
+* extract timeout provider to an external project (to do)
