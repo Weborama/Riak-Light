@@ -177,15 +177,15 @@ sub _fetch {
 }
 
 sub put_raw {
-    state $check = compile(Any, Str, Str, Any, Optional[Str]);
-    my ( $self, $bucket, $key, $value, $content_type ) = $check->(@_);
+    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef]);
+    my ( $self, $bucket, $key, $value, $content_type, $indexes ) = $check->(@_);
     $content_type ||= 'plain/text';
-    $self->_store( $bucket, $key, $value, $content_type );
+    $self->_store( $bucket, $key, $value, $content_type, $indexes );
 }
 
 sub put {
-    state $check = compile(Any, Str, Str, Any, Optional[Str]);
-    my ( $self, $bucket, $key, $value, $content_type ) = $check->(@_);
+    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef]);
+    my ( $self, $bucket, $key, $value, $content_type, $indexes ) = $check->(@_);
     $content_type ||= 'application/json';
 
     my $encoded_value =
@@ -193,11 +193,11 @@ sub put {
       ? encode_json($value)
       : $value;
 
-    $self->_store( $bucket, $key, $encoded_value, $content_type );
+    $self->_store( $bucket, $key, $encoded_value, $content_type, $indexes );
 }
 
 sub _store {
-    my ( $self, $bucket, $key, $encoded_value, $content_type ) = @_;
+    my ( $self, $bucket, $key, $encoded_value, $content_type, $indexes ) = @_;
 
     my $body = RpbPutReq->encode(
         {   key     => $key,
@@ -206,6 +206,7 @@ sub _store {
                 value        => $encoded_value,
                 content_type => $content_type,
             },
+            ( $indexes ? (head => 1) : () ),
         }
     );
 
@@ -214,6 +215,7 @@ sub _store {
         bucket    => $bucket,
         operation => $PUT,
         body      => $body,
+        ( $indexes ? ( extra => { map { 'x-riak-index-' . $_ , $indexes->{$_} } keys %$indexes }) : () ),
     );
 }
 
