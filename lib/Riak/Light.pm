@@ -98,10 +98,12 @@ const my $GET      => 'get';
 const my $PUT      => 'put';
 const my $DEL      => 'del';
 const my $GET_KEYS => 'get_keys';
+const my $QUERY_INDEX => 'query_index';
 
 const my $ERROR_RESPONSE_CODE    => 0;
 const my $GET_RESPONSE_CODE      => 10;
 const my $GET_KEYS_RESPONSE_CODE => 18;
+const my $QUERY_INDEX_RESPONSE_CODE => 26;
 
 const my $CODES => {
         $PING     => { request_code => 1,  response_code => 2 },
@@ -109,7 +111,9 @@ const my $CODES => {
         $PUT      => { request_code => 11, response_code => 12 },
         $DEL      => { request_code => 13, response_code => 14 },
         $GET_KEYS => { request_code => 17, response_code => 18 },
+        $QUERY_INDEX => { request_code => 25, response_code => 26 },
     };
+
 
 sub ping {
     $_[0]->_parse_response(
@@ -123,7 +127,7 @@ sub is_alive {
 }
 
 sub get_keys {
-    state $check = compile(Any, Str, CodeRef);
+    state $check = compile(Any, Str, Optional[CodeRef]);
     my ( $self, $bucket, $callback ) = $check->(@_);
 
     my $body = RpbListKeysReq->encode( { bucket => $bucket } );
@@ -132,32 +136,30 @@ sub get_keys {
         bucket    => $bucket,
         operation => $GET_KEYS,
         body      => $body,
-        extra     => { callback => $callback },
+        callback => $callback,
     );
 }
 
 sub get_raw {
     state $check = compile(Any, Str, Str);
     my ( $self, $bucket, $key ) = $check->(@_);
-    $self->_fetch( $bucket, $key, decode => 0 );
+    $self->_fetch( $bucket, $key, 0 );
 }
 
 sub get {
     state $check = compile(Any, Str, Str);
     my ( $self, $bucket, $key ) = $check->(@_);
-    $self->_fetch( $bucket, $key, decode => 1 );
+    $self->_fetch( $bucket, $key, 1 );
 }
 
 sub exists {
     state $check = compile(Any, Str, Str);
     my ( $self, $bucket, $key ) = $check->(@_);
-    defined $self->_fetch( $bucket, $key, decode => 0, head => 1 );
+    defined $self->_fetch( $bucket, $key, 0, 1 );
 }
 
 sub _fetch {
-    my ( $self, $bucket, $key, %extra ) = @_;
-
-    my $head = $extra{head};
+    my ( $self, $bucket, $key, $decode, $head ) = @_;
 
     my $body = RpbGetReq->encode(
         {   r      => $self->r,
@@ -172,32 +174,30 @@ sub _fetch {
         bucket    => $bucket,
         operation => $GET,
         body      => $body,
-        extra     => {%extra}
+        decode    => $decode,
     );
 }
 
 sub put_raw {
-    state $check = compile(Any, Str, Str, Any, Optional[Str]);
-    my ( $self, $bucket, $key, $value, $content_type ) = $check->(@_);
+    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str]]);
+    my ( $self, $bucket, $key, $value, $content_type, $indexes ) = $check->(@_);
     $content_type ||= 'plain/text';
-    $self->_store( $bucket, $key, $value, $content_type );
+    $self->_store( $bucket, $key, $value, $content_type, $indexes);
 }
 
 sub put {
-    state $check = compile(Any, Str, Str, Any, Optional[Str]);
-    my ( $self, $bucket, $key, $value, $content_type ) = $check->(@_);
-    $content_type ||= 'application/json';
+    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str]]);
+    my ( $self, $bucket, $key, $value, $content_type, $indexes ) = $check->(@_);
 
-    my $encoded_value =
-      ( $content_type eq 'application/json' )
-      ? encode_json($value)
-      : $value;
+    ($content_type ||= 'application/json')
+      eq 'application/json'
+        and $value = encode_json($value);
 
-    $self->_store( $bucket, $key, $encoded_value, $content_type );
+    $self->_store( $bucket, $key, $value, $content_type, $indexes);
 }
 
 sub _store {
-    my ( $self, $bucket, $key, $encoded_value, $content_type ) = @_;
+    my ( $self, $bucket, $key, $encoded_value, $content_type, $indexes ) = @_;
 
     my $body = RpbPutReq->encode(
         {   key     => $key,
@@ -205,6 +205,13 @@ sub _store {
             content => {
                 value        => $encoded_value,
                 content_type => $content_type,
+                ( $indexes ?
+                  (indexes => [
+                              map {
+                                  { key => $_ , value => $indexes->{$_} }
+                              } keys %$indexes
+                             ])
+                  : () ),
             },
         }
     );
@@ -236,6 +243,34 @@ sub del {
     );
 }
 
+sub query_index {
+     state $check = compile(Any, Str, Str, Str|ArrayRef);
+     my ( $self, $bucket, $index, $value_to_match ) = $check->(@_);
+
+     my $query_type = 0; # eq
+     ref $value_to_match
+       and $query_type = 1; # range
+     my $body = RpbIndexReq->encode(
+         {   index    => $index,
+             bucket   => $bucket,
+             qtype    => $query_type,
+             $query_type ?
+             ( range_min => $value_to_match->[0],
+               range_max => $value_to_match->[1] )
+             : (key => $value_to_match ),
+         }
+     );
+
+     $self->_parse_response(
+         $query_type ?
+           (key => '2i query on ' . $value_to_match->[0] . '...' . $value_to_match->[1])
+         : (key => $value_to_match ),
+         bucket    => $bucket,
+         operation => $QUERY_INDEX,
+         body      => $body,
+     );
+ }
+
 sub _parse_response {
     my ( $self, %args ) = @_;
     
@@ -245,10 +280,10 @@ sub _parse_response {
     my $expected_code = $CODES->{$operation}->{response_code};
 
     my $request_body = $args{body};
-    my $extra        = $args{extra};
+    my $decode       = $args{decode};
     my $bucket       = $args{bucket};
     my $key          = $args{key};
-    my $callback     = $extra->{callback};
+    my $callback = $args{callback};
     
     $self->autodie
       or undef $@;    ## no critic (RequireLocalizedPunctuationVars)
@@ -262,63 +297,86 @@ sub _parse_response {
         $key
       );
 
-    my $done = $expected_code != $GET_KEYS_RESPONSE_CODE;
+#    my $done = 0;
+#$expected_code != $GET_KEYS_RESPONSE_CODE;
+
     my $response;
-    do {
-        $response = $self->driver->read_response();
+    my @results;
+    while (1) {
+        # get and check response
+        $response = $self->driver->read_response()
+          // { code => -1, body => undef, error => $ERRNO };
 
-        if ( !defined $response ) {
-            $response = { code => -1, body => undef, error => $ERRNO };
-            $done = 1;
+        my ($response_code, $response_body, $response_error) = @{$response}{qw(code body error)};
+
+        # in case of internal error message
+        defined $response_error
+          and return $self->_process_generic_error(
+              $response_error, $operation, $bucket,
+              $key
+          );
+    
+        # in case of error msg
+        $response_code == $ERROR_RESPONSE_CODE
+          and return $self->_process_riak_error(
+              $response_body, $operation, $bucket,
+              $key
+          );
+    
+        # in case of default message
+        $response_code != $expected_code
+          and return $self->_process_generic_error(
+              "Unexpected Response Code in (got: $response_code, expected: $expected_code)",
+              $operation, $bucket, $key
+          );
+    
+        # we have a 'get' response
+        $response_code == $GET_RESPONSE_CODE
+          and return $self->_process_get_response( $response_body, $bucket, $key, $decode );
+
+        # we have a 'get_keys' response
+        # TODO: support for 1.4 (which provides 'stream', 'return_terms', and 'stream')
+        if ($response_code == $GET_KEYS_RESPONSE_CODE) {
+            my $obj = RpbListKeysResp->decode( $response_body );
+            my @keys = @{$obj->keys // []};
+            if ($callback) {
+                $callback->($_) foreach @keys;
+                $obj->done
+                  and return;
+            } else {
+                push @results, @keys;
+                $obj->done
+                  and return \@results;
+            }
+            next;
         }
-        elsif ( !$done
-            && $response->{code} == $GET_KEYS_RESPONSE_CODE )
-        {
-            my $obj = RpbListKeysResp->decode( $response->{body} );
-            $callback->($_) foreach @{$obj->keys // []};
-            $done = $obj->done;
+
+        # in case of a 'query_index' response
+        if ($response_code == $QUERY_INDEX_RESPONSE_CODE) {
+            my $obj = RpbIndexResp->decode( $response_body );
+            my @keys = @{$obj->keys // []};
+            if ($callback) {
+                $callback->($_) foreach @keys;
+                return;
+            } else {
+                return \@keys;
+            }
+            next;
         }
-        elsif ( !$done ) {
-            $done = 1;
-        }
-    } while ( !$done );
 
-    my ($response_code, $response_body, $response_error) = @{$response}{qw(code body error)};
+        # in case of no return value, signify success
+        return 1;
+    }
 
-    # return internal error message
-    return $self->_process_generic_error(
-        $response_error, $operation, $bucket,
-        $key
-    ) if defined $response_error;
-
-    # return default message
-    return $self->_process_generic_error(
-        "Unexpected Response Code in (got: $response_code, expected: $expected_code)",
-        $operation, $bucket, $key
-      )
-      if $response_code != $expected_code
-          and $response_code != $ERROR_RESPONSE_CODE;
-
-    # return the error msg
-    return $self->_process_riak_error(
-        $response_body, $operation, $bucket,
-        $key
-    ) if $response_code == $ERROR_RESPONSE_CODE;
-
-    # return the result from fetch
-    return $self->_process_riak_fetch( $response_body, $bucket, $key, $extra )
-      if $response_code == $GET_RESPONSE_CODE;
-
-    1    # return true value, in case of a successful put/del
 }
 
-sub _process_riak_fetch {
-    my ( $self, $encoded_message, $bucket, $key, $extra ) = @_;
+sub _process_get_response {
+    my ( $self, $encoded_message, $bucket, $key, $decode ) = @_;
 
     $self->_process_generic_error( "Undefined Message", 'get', $bucket, $key )
       unless ( defined $encoded_message );
 
-    my $should_decode   = $extra->{decode};
+    my $should_decode   = $decode;
     my $decoded_message = RpbGetResp->decode($encoded_message);
 
     my $content = $decoded_message->content;
@@ -409,7 +467,14 @@ __END__
   
 =head1 DESCRIPTION
 
-Riak::Light is a very light (and fast) perl client for Riak using PBC interface. Support only basic operations like ping, get, put and del. Is flexible to change the timeout backend for I/O operations and can suppress 'die' in case of error (autodie) using the configuration. There is no auto-reconnect option.
+Riak::Light is a very light (and fast) Perl client for Riak using PBC
+interface. Support operations like ping, get, exists, put, del, and secondary
+indexes (so-called 2i) setting and querying.
+
+It is flexible to change the timeout backend for I/O operations and can
+suppress 'die' in case of error (autodie) using the configuration. There is no
+auto-reconnect option. It can be very easily wrapped up by modules like
+L<Action::Retry> to manage flexible retry/reconnect strategies.
 
 =head2 ATTRIBUTES
 
@@ -451,19 +516,24 @@ Timeout for write operations. Default is timeout value.
 
 =head3 timeout_provider
 
-Can change the backend for timeout. The default value is IO::Socket::INET and there is only support to connection timeout.
-IMPORTANT: in case of any timeout error, the socket between this client and the Riak server will be closed.
-To support I/O timeout you can choose 5 options (or you can set undef to avoid IO Timeout):
+Can change the backend for timeout. The default value is IO::Socket::INET and
+there is only support to connection timeout.
+
+B<IMPORTANT>: in case of any timeout error, the socket between this client and the
+Riak server will be closed. To support I/O timeout you can choose 5 options (or
+you can set undef to avoid IO Timeout):
 
 =over  
 
 =item * Riak::Light::Timeout::Alarm
 
-uses alarm and Time::HiRes to control the I/O timeout. Does not work on Win32. (Not Safe)
+uses alarm and Time::HiRes to control the I/O timeout. Does not work on Win32.
+(Not Safe)
 
 =item * Riak::Light::Timeout::Time::Out
 
-uses Time::Out and Time::HiRes to control the I/O timeout. Does not work on Win32. (Not Safe)
+uses Time::Out and Time::HiRes to control the I/O timeout. Does not work on
+Win32. (Not Safe)
 
 =item *  Riak::Light::Timeout::Select
 
@@ -471,17 +541,20 @@ uses IO::Select to control the I/O timeout
 
 =item *  Riak::Light::Timeout::SelectOnWrite
 
-uses IO::Select to control only Output Operations. Can block in Write Operations. Be Careful.
+uses IO::Select to control only Output Operations. Can block in Write
+Operations. Be Careful.
 
 =item *  Riak::Light::Timeout::SetSockOpt
 
-uses setsockopt to set SO_RCVTIMEO and SO_SNDTIMEO socket properties. Does not Work on NetBSD 6.0.
+uses setsockopt to set SO_RCVTIMEO and SO_SNDTIMEO socket properties. Does not
+Work on NetBSD 6.0.
 
 =back
 
 =head3 driver
 
-This is a Riak::Light::Driver instance, to be able to connect and perform requests to Riak over PBC interface.
+This is a Riak::Light::Driver instance, to be able to connect and perform
+requests to Riak over PBC interface.
 
 =head2 METHODS
 
@@ -494,7 +567,7 @@ Perform a ping operation. Will return false in case of error (will store in $@).
 
 =head3 is_alive
 
-  try { $client->ping() } catch { "ops... something is wrong: $_" };
+  try { $client->ping() } catch { "oops... something is wrong: $_" };
 
 Perform a ping operation. Will die in case of error.
 
@@ -502,33 +575,67 @@ Perform a ping operation. Will die in case of error.
 
   my $value_or_reference = $client->get(bucket => 'key');
 
-Perform a fetch operation. Expects bucket and key names. Decode the json into a Perl structure. if the content_type is 'application/json'. If you need the raw data you can use L<get_raw>.
+Perform a fetch operation. Expects bucket and key names. Decode the json into a
+Perl structure. if the content_type is 'application/json'. If you need the raw
+data you can use L<get_raw>.
 
 =head3 get_raw
 
   my $scalar_value = $client->get_raw(bucket => 'key');
 
-Perform a fetch operation. Expects bucket and key names. Return the raw data. If you need decode the json, you should use L<get> instead.
+Perform a fetch operation. Expects bucket and key names. Return the raw data.
+If you need decode the json, you should use L<get> instead.
 
 =head3 exists
 
   $client->exists(bucket => 'key') or warn "key not found";
   
-Perform a fetch operation but with head => 0, and the if there is something stored in the bucket/key.
+Perform a fetch operation but with head => 0, and the if there is something
+stored in the bucket/key.
 
 =head3 put
 
-  $client->put(bucket => key => { some_values => [1,2,3] });
-  $client->put(bucket => key => 'text', 'plain/text');
+  $client->put('bucket', 'key', { some_values => [1,2,3] });
+  $client->put('bucket', 'key', { some_values => [1,2,3] }, 'application/json);
+  $client->put('bucket', 'key', 'text', 'plain/text');
 
-Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'application/json'). Will encode the structure in json string if necessary. If you need only store the raw data you can use L<put_raw> instead.
+  # you can set secondary indexes (2i)
+  $client->put( 'bucket', 'key', 'text', 'plain/text',
+                { field1_bin => 'abc', field2_int => 42 }
+              );
+  $client->put( 'bucket', 'key', { some_values => [1,2,3] }, undef,
+                { field1_bin => 'abc', field2_int => 42 }
+              );
+
+Perform a store operation. Expects bucket and key names, the value, the content
+type (optional, default is 'application/json'), and the indexes to set for this
+value (optional, default is none).
+
+Will encode the structure in json string if necessary. If you need only store
+the raw data you can use L<put_raw> instead.
+
+B<IMPORTANT>: all the index field names should end by either C<_int> or
+C<_bin>, depending if the index type is integer or binary.
+
+To query secondary indexes, see L<query_index>.
 
 =head3 put_raw
 
-  $client->put_raw(bucket => key => encode_json({ some_values => [1,2,3] }), 'application/json');
-  $client->put_raw(bucket => key => 'text');
+  $client->put_raw('bucket', 'key', encode_json({ some_values => [1,2,3] }), 'application/json');
+  $client->put_raw('bucket', 'key', 'text');
+  $client->put_raw('bucket', 'key', 'text', undef, {field_bin => 'foo'});
 
-Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'plain/text'). Will encode the raw data. If you need encode the structure you can use L<put> instead.
+Perform a store operation. Expects bucket and key names, the value, the content
+type (optional, default is 'plain/text'), and the indexes to set for this value
+(optional, default is none).
+
+Will encode the raw data. If you need encode the structure you can use L<put>
+instead.
+
+B<IMPORTANT>: all the index field names should end by either C<_int> or
+C<_bin>, depending if the index type is integer or binary.
+
+To query secondary indexes, see L<query_index>.
 
 =head3 del
 
@@ -545,7 +652,30 @@ Perform a delete operation. Expects bucket and key names.
      $another_client->del(foo => $key);
   });
 
-Perform a list keys operation. Receive a callback and will call it for each key. You can't use this callback to perform other operations!
+Perform a list keys operation. Receive a callback and will call it for each
+key. You can't use this callback to perform other operations!
+
+The callback is optional, in which case an ArrayRef of all the keys are
+returned. But you should always provide a callback, to avoid your RAM usage to
+skyrocket...
+
+=head3 query_index
+
+Perform a secondary index query. Expects a bucket name, the index field name,
+and the index value you're searching on. Returns and ArrayRef of matching keys.
+
+The index value you're searching on can be of two types. If it's a scalar, an
+B<exact match> query will be performed. if the value is an ArrayRef, then a
+B<range> query will be performed, the first element in the array will be the
+range_min, the second element the range_max. other elements will be ignored.
+
+Based on the example in C<put>, here is how to query it:
+
+  # exact match
+  my $matching_keys = $client->query_index( 'bucket',  'field2_int', 42 ),
+
+  # range match
+  my $matching_keys = $client->query_index( 'bucket',  'field2_int', [ 40, 50] ),
 
 =head1 SEE ALSO
 
@@ -554,3 +684,5 @@ L<Net::Riak>
 L<Data::Riak>
 
 L<Data::Riak::Fast>
+
+L<Action::Retry>
