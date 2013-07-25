@@ -1,3 +1,6 @@
+0.060 2013-07-25 15:22:00 GMT 
+   * Support secondary indexes (2i)
+
 0.059 2013-06-06 16:27:08 GMT 
    * Refactor util class. (Tiago Peczenyj)
 
