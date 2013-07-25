@@ -179,27 +179,25 @@ sub _fetch {
 }
 
 sub put_raw {
-    state $check = compile(Any, Str, Str, Any, Optional[Str]);
-    my ( $self, $bucket, $key, $value, $content_type ) = $check->(@_);
+    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str]]);
+    my ( $self, $bucket, $key, $value, $content_type, $indexes ) = $check->(@_);
     $content_type ||= 'plain/text';
-    $self->_store( $bucket, $key, $value, $content_type);
+    $self->_store( $bucket, $key, $value, $content_type, $indexes);
 }
 
 sub put {
-    state $check = compile(Any, Str, Str, Any, Optional[Str]);
-    my ( $self, $bucket, $key, $value, $content_type ) = $check->(@_);
-    $content_type ||= 'application/json';
+    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str]]);
+    my ( $self, $bucket, $key, $value, $content_type, $indexes ) = $check->(@_);
 
-    my $encoded_value =
-      ( $content_type eq 'application/json' )
-      ? encode_json($value)
-      : $value;
+    ($content_type ||= 'application/json')
+      eq 'application/json'
+        and $value = encode_json($value);
 
-    $self->_store( $bucket, $key, $encoded_value, $content_type);
+    $self->_store( $bucket, $key, $value, $content_type, $indexes);
 }
 
 sub _store {
-    my ( $self, $bucket, $key, $encoded_value, $content_type ) = @_;
+    my ( $self, $bucket, $key, $encoded_value, $content_type, $indexes ) = @_;
 
     my $body = RpbPutReq->encode(
         {   key     => $key,
@@ -207,6 +205,13 @@ sub _store {
             content => {
                 value        => $encoded_value,
                 content_type => $content_type,
+                ( $indexes ?
+                  (indexes => [
+                              map {
+                                  { key => $_ , value => $indexes->{$_} }
+                              } keys %$indexes
+                             ])
+                  : () ),
             },
         }
     );
@@ -239,19 +244,27 @@ sub del {
 }
 
 sub query_index {
-     state $check = compile(Any, Str, Str, Str);
-     my ( $self, $bucket, $index, $key ) = $check->(@_);
+     state $check = compile(Any, Str, Str, Str|ArrayRef);
+     my ( $self, $bucket, $index, $value_to_match ) = $check->(@_);
 
+     my $query_type = 0; # eq
+     ref $value_to_match
+       and $query_type = 1; # range
      my $body = RpbIndexReq->encode(
          {   index    => $index,
              bucket   => $bucket,
-             qtype    => 0, # eq
-             key     => $key,
+             qtype    => $query_type,
+             $query_type ?
+             ( range_min => $value_to_match->[0],
+               range_max => $value_to_match->[1] )
+             : (key => $value_to_match ),
          }
      );
 
      $self->_parse_response(
-         key       => $key,
+         $query_type ?
+           (key => '2i query on ' . $value_to_match->[0] . '...' . $value_to_match->[1])
+         : (key => $value_to_match ),
          bucket    => $bucket,
          operation => $QUERY_INDEX,
          body      => $body,
@@ -454,7 +467,14 @@ __END__
   
 =head1 DESCRIPTION
 
-Riak::Light is a very light (and fast) perl client for Riak using PBC interface. Support only basic operations like ping, get, put and del. Is flexible to change the timeout backend for I/O operations and can suppress 'die' in case of error (autodie) using the configuration. There is no auto-reconnect option.
+Riak::Light is a very light (and fast) Perl client for Riak using PBC
+interface. Support operations like ping, get, exists, put, del, and secondary
+indexes (so-called 2i) setting and querying.
+
+It is flexible to change the timeout backend for I/O operations and can
+suppress 'die' in case of error (autodie) using the configuration. There is no
+auto-reconnect option. It can be very easily wrapped up by modules like
+L<Action::Retry> to manage flexible retry/reconnect strategies.
 
 =head2 ATTRIBUTES
 
@@ -496,19 +516,24 @@ Timeout for write operations. Default is timeout value.
 
 =head3 timeout_provider
 
-Can change the backend for timeout. The default value is IO::Socket::INET and there is only support to connection timeout.
-IMPORTANT: in case of any timeout error, the socket between this client and the Riak server will be closed.
-To support I/O timeout you can choose 5 options (or you can set undef to avoid IO Timeout):
+Can change the backend for timeout. The default value is IO::Socket::INET and
+there is only support to connection timeout.
+
+B<IMPORTANT>: in case of any timeout error, the socket between this client and the
+Riak server will be closed. To support I/O timeout you can choose 5 options (or
+you can set undef to avoid IO Timeout):
 
 =over  
 
 =item * Riak::Light::Timeout::Alarm
 
-uses alarm and Time::HiRes to control the I/O timeout. Does not work on Win32. (Not Safe)
+uses alarm and Time::HiRes to control the I/O timeout. Does not work on Win32.
+(Not Safe)
 
 =item * Riak::Light::Timeout::Time::Out
 
-uses Time::Out and Time::HiRes to control the I/O timeout. Does not work on Win32. (Not Safe)
+uses Time::Out and Time::HiRes to control the I/O timeout. Does not work on
+Win32. (Not Safe)
 
 =item *  Riak::Light::Timeout::Select
 
@@ -516,17 +541,20 @@ uses IO::Select to control the I/O timeout
 
 =item *  Riak::Light::Timeout::SelectOnWrite
 
-uses IO::Select to control only Output Operations. Can block in Write Operations. Be Careful.
+uses IO::Select to control only Output Operations. Can block in Write
+Operations. Be Careful.
 
 =item *  Riak::Light::Timeout::SetSockOpt
 
-uses setsockopt to set SO_RCVTIMEO and SO_SNDTIMEO socket properties. Does not Work on NetBSD 6.0.
+uses setsockopt to set SO_RCVTIMEO and SO_SNDTIMEO socket properties. Does not
+Work on NetBSD 6.0.
 
 =back
 
 =head3 driver
 
-This is a Riak::Light::Driver instance, to be able to connect and perform requests to Riak over PBC interface.
+This is a Riak::Light::Driver instance, to be able to connect and perform
+requests to Riak over PBC interface.
 
 =head2 METHODS
 
@@ -539,7 +567,7 @@ Perform a ping operation. Will return false in case of error (will store in $@).
 
 =head3 is_alive
 
-  try { $client->ping() } catch { "ops... something is wrong: $_" };
+  try { $client->ping() } catch { "oops... something is wrong: $_" };
 
 Perform a ping operation. Will die in case of error.
 
@@ -547,33 +575,67 @@ Perform a ping operation. Will die in case of error.
 
   my $value_or_reference = $client->get(bucket => 'key');
 
-Perform a fetch operation. Expects bucket and key names. Decode the json into a Perl structure. if the content_type is 'application/json'. If you need the raw data you can use L<get_raw>.
+Perform a fetch operation. Expects bucket and key names. Decode the json into a
+Perl structure. if the content_type is 'application/json'. If you need the raw
+data you can use L<get_raw>.
 
 =head3 get_raw
 
   my $scalar_value = $client->get_raw(bucket => 'key');
 
-Perform a fetch operation. Expects bucket and key names. Return the raw data. If you need decode the json, you should use L<get> instead.
+Perform a fetch operation. Expects bucket and key names. Return the raw data.
+If you need decode the json, you should use L<get> instead.
 
 =head3 exists
 
   $client->exists(bucket => 'key') or warn "key not found";
   
-Perform a fetch operation but with head => 0, and the if there is something stored in the bucket/key.
+Perform a fetch operation but with head => 0, and the if there is something
+stored in the bucket/key.
 
 =head3 put
 
-  $client->put(bucket => key => { some_values => [1,2,3] });
-  $client->put(bucket => key => 'text', 'plain/text');
+  $client->put('bucket', 'key', { some_values => [1,2,3] });
+  $client->put('bucket', 'key', { some_values => [1,2,3] }, 'application/json);
+  $client->put('bucket', 'key', 'text', 'plain/text');
 
-Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'application/json'). Will encode the structure in json string if necessary. If you need only store the raw data you can use L<put_raw> instead.
+  # you can set secondary indexes (2i)
+  $client->put( 'bucket', 'key', 'text', 'plain/text',
+                { field1_bin => 'abc', field2_int => 42 }
+              );
+  $client->put( 'bucket', 'key', { some_values => [1,2,3] }, undef,
+                { field1_bin => 'abc', field2_int => 42 }
+              );
+
+Perform a store operation. Expects bucket and key names, the value, the content
+type (optional, default is 'application/json'), and the indexes to set for this
+value (optional, default is none).
+
+Will encode the structure in json string if necessary. If you need only store
+the raw data you can use L<put_raw> instead.
+
+B<IMPORTANT>: all the index field names should end by either C<_int> or
+C<_bin>, depending if the index type is integer or binary.
+
+To query secondary indexes, see L<query_index>.
 
 =head3 put_raw
 
-  $client->put_raw(bucket => key => encode_json({ some_values => [1,2,3] }), 'application/json');
-  $client->put_raw(bucket => key => 'text');
+  $client->put_raw('bucket', 'key', encode_json({ some_values => [1,2,3] }), 'application/json');
+  $client->put_raw('bucket', 'key', 'text');
+  $client->put_raw('bucket', 'key', 'text', undef, {field_bin => 'foo'});
 
-Perform a store operation. Expects bucket and key names, the value and the content type (optional, default is 'plain/text'). Will encode the raw data. If you need encode the structure you can use L<put> instead.
+Perform a store operation. Expects bucket and key names, the value, the content
+type (optional, default is 'plain/text'), and the indexes to set for this value
+(optional, default is none).
+
+Will encode the raw data. If you need encode the structure you can use L<put>
+instead.
+
+B<IMPORTANT>: all the index field names should end by either C<_int> or
+C<_bin>, depending if the index type is integer or binary.
+
+To query secondary indexes, see L<query_index>.
 
 =head3 del
 
@@ -590,12 +652,30 @@ Perform a delete operation. Expects bucket and key names.
      $another_client->del(foo => $key);
   });
 
-Perform a list keys operation. Receive a callback and will call it for each key. You can't use this callback to perform other operations!
+Perform a list keys operation. Receive a callback and will call it for each
+key. You can't use this callback to perform other operations!
 
 The callback is optional, in which case an ArrayRef of all the keys are
-returns. But you should always provide a callback, to avoid your RAM usage to
+returned. But you should always provide a callback, to avoid your RAM usage to
 skyrocket...
 
+=head3 query_index
+
+Perform a secondary index query. Expects a bucket name, the index field name,
+and the index value you're searching on. Returns and ArrayRef of matching keys.
+
+The index value you're searching on can be of two types. If it's a scalar, an
+B<exact match> query will be performed. if the value is an ArrayRef, then a
+B<range> query will be performed, the first element in the array will be the
+range_min, the second element the range_max. other elements will be ignored.
+
+Based on the example in C<put>, here is how to query it:
+
+  # exact match
+  my $matching_keys = $client->query_index( 'bucket',  'field2_int', 42 ),
+
+  # range match
+  my $matching_keys = $client->query_index( 'bucket',  'field2_int', [ 40, 50] ),
 
 =head1 SEE ALSO
 
@@ -604,3 +684,5 @@ L<Net::Riak>
 L<Data::Riak>
 
 L<Data::Riak::Fast>
+
+L<Action::Retry>
