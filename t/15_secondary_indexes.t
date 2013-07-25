@@ -1,5 +1,4 @@
 BEGIN {
-    $ENV{RIAK_PBC_HOST} = '127.0.0.1:8087';
     unless ( $ENV{RIAK_PBC_HOST} ) {
         require Test::More;
         Test::More::plan(
