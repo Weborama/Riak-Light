@@ -179,14 +179,14 @@ sub _fetch {
 }
 
 sub put_raw {
-    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str]]);
+    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str|ArrayRef[Str]]]);
     my ( $self, $bucket, $key, $value, $content_type, $indexes ) = $check->(@_);
     $content_type ||= 'plain/text';
     $self->_store( $bucket, $key, $value, $content_type, $indexes);
 }
 
 sub put {
-    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str]]);
+    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str|ArrayRef[Str]]]);
     my ( $self, $bucket, $key, $value, $content_type, $indexes ) = $check->(@_);
 
     ($content_type ||= 'application/json')
@@ -208,7 +208,11 @@ sub _store {
                 ( $indexes ?
                   (indexes => [
                               map {
-                                  { key => $_ , value => $indexes->{$_} }
+                                  my $k = $_;
+                                  my $v = $indexes->{$_};
+                                  ref $v eq 'ARRAY'
+                                    ? map { { key => $k , value => $_ }; } @$v
+                                    : { key => $k , value => $v };
                               } keys %$indexes
                              ])
                   : () ),
@@ -606,6 +610,10 @@ stored in the bucket/key.
   $client->put( 'bucket', 'key', { some_values => [1,2,3] }, undef,
                 { field1_bin => 'abc', field2_int => 42 }
               );
+  # remember that a key can have more than one value in a given index. In this
+  # case, use ArrayRef:
+  $client->put( 'bucket', 'key', 'value', undef,
+                { field1_bin => [ 'abc', 'def' ] } );
 
 Perform a store operation. Expects bucket and key names, the value, the content
 type (optional, default is 'application/json'), and the indexes to set for this

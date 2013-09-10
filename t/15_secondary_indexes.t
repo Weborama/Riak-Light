@@ -52,7 +52,7 @@ subtest "query 2i" => sub {
 
     foreach (1..50) {
         ok( $client->put( $bucket_name => "key$_", $hash, undef, { index_test_field_bin => 'plop',
-                                                                   index_test_field2_bin => 'plop2'} ),
+                                                                   index_test_field2_bin => [ 'plop2', 'plop3' ] } ),
             "should store the hashref in Riak with indexes"
           );
     }
@@ -68,6 +68,10 @@ subtest "query 2i" => sub {
                "querying the index should return the keys"
              );
     is_deeply( [ sort @{ $client->query_index( $bucket_name => 'index_test_field2_bin', 'plop2' ) } ],
+               [ sort map { "key$_" }(1..50)],
+               "querying the index should return the keys"
+             );
+    is_deeply( [ sort @{ $client->query_index( $bucket_name => 'index_test_field2_bin', 'plop3' ) } ],
                [ sort map { "key$_" }(1..50)],
                "querying the index should return the keys"
              );
