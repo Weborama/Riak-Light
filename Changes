@@ -1,3 +1,5 @@
+   * Support multi-values in secondary indexes (Damien Krotkine)
+
 0.060 2013-07-25 15:22:00 GMT 
    * Support secondary indexes (2i)
 
