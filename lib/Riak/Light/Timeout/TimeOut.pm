@@ -3,7 +3,7 @@ package Riak::Light::Timeout::TimeOut;
 ## use critic
 
 use POSIX qw(ETIMEDOUT ECONNRESET);
-use Time::Out qw(timeout);
+use Time::Out qw();
 use Time::HiRes;
 use Riak::Light::Util qw(is_windows);
 use Carp;
@@ -14,10 +14,9 @@ with 'Riak::Light::Timeout';
 
 # ABSTRACT: proxy to read/write using Time::Out as a timeout provider
 
-has socket      => ( is => 'ro', required => 1 );
-has in_timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
-has out_timeout => ( is => 'ro', isa      => Num, default => sub {0.5} );
-has is_valid    => ( is => 'rw', isa      => Bool, default => sub {1} );
+has socket    => ( is => 'ro', required => 1 );
+has timeout   => ( is => 'ro', isa      => Num, default => sub {0.5} );
+has is_valid  => ( is => 'rw', isa      => Bool, default => sub {1} );
 
 sub BUILD {
 
@@ -40,8 +39,8 @@ sub sysread {
     $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
     my $buffer;
-    my $seconds = $self->in_timeout;
-    my $result = timeout $seconds, @_ => sub {
+    my $seconds = $self->timeout;
+    my $result = Time::Out::timeout $seconds, @_ => sub {
         my $readed = $self->socket->sysread(@_);
         $buffer = $_[0];    # NECESSARY, timeout does not map the alias @_ !!
         $readed;
@@ -61,8 +60,8 @@ sub syswrite {
     my $self = shift;
     $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
-    my $seconds = $self->out_timeout;
-    my $result = timeout $seconds, @_ => sub {
+    my $seconds = $self->timeout;
+    my $result = Time::Out::timeout $seconds, @_ => sub {
         $self->socket->syswrite(@_);
     };
     if ($@) {

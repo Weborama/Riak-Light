@@ -8,10 +8,12 @@ use Riak::Light::Connector;
 use Riak::Light::Driver;
 use Riak::Light::Timeout;
 use Riak::Light::Timeout::Alarm;
+use Riak::Light::Timeout::SetSockOpt;
 use Riak::Light::Timeout::Select;
 use Riak::Light::Timeout::SelectOnRead;
 use Riak::Light::Timeout::TimeOut;
 use Riak::Light::Util;
+use Riak::Light::TraceIt;
 
 ok 1, 'All modules loaded successfully';
 $ok = 1;
