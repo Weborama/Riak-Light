@@ -13,7 +13,8 @@ with 'Riak::Light::Timeout';
 # ABSTRACT: proxy to read/write using Alarm as a timeout provider ( Not Safe: can clobber previous alarm )
 
 has socket      => ( is => 'ro', required => 1 );
-has timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
+has in_timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
+has out_timeout => ( is => 'ro', isa      => Num, default => sub {0.5} );
 has is_valid    => ( is => 'rw', isa      => Bool, default => sub {1} );
 
 sub BUILD {
@@ -40,7 +41,7 @@ sub sysread {
     $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
     my $buffer;
-    my $seconds = $self->timeout;
+    my $seconds = $self->in_timeout;
 
     my $result = eval {
         local $SIG{'ALRM'} = sub { croak 'Timeout !' };
@@ -68,7 +69,7 @@ sub syswrite {
     my $self = shift;
     $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
-    my $seconds = $self->timeout;
+    my $seconds = $self->out_timeout;
     my $result  = eval {
         local $SIG{'ALRM'} = sub { croak 'Timeout !' };
         alarm($seconds);

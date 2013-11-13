@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More tests => 6;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
@@ -23,7 +23,7 @@ subtest "exists" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234,
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -49,7 +49,7 @@ subtest "exists" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234,
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -74,7 +74,7 @@ subtest "ping" => sub {
 
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -90,7 +90,7 @@ subtest "ping" => sub {
         $mock->set_false('read_response');
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -117,7 +117,7 @@ subtest "ping" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -140,7 +140,7 @@ subtest "ping" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -163,7 +163,7 @@ subtest "ping" => sub {
         $mock->set_false('perform_request');
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -199,7 +199,7 @@ subtest "get" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -236,7 +236,7 @@ subtest "get" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -262,7 +262,7 @@ subtest "get" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -283,7 +283,7 @@ subtest "get" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -302,7 +302,7 @@ subtest "get" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -327,7 +327,7 @@ subtest "put" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -351,7 +351,7 @@ subtest "put" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -378,7 +378,7 @@ subtest "put" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
         my $hash = { foo => 123 };
@@ -403,7 +403,7 @@ subtest "del" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -420,7 +420,7 @@ subtest "del" => sub {
         $mock->set_always( read_response => $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -446,7 +446,7 @@ subtest "get_keys" => sub {
         $mock->set_always( 'read_response', $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -475,7 +475,7 @@ subtest "get_keys" => sub {
         $mock->set_always( 'read_response', $mock_response );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
@@ -509,104 +509,13 @@ subtest "get_keys" => sub {
         $mock->set_series( 'read_response', $mock_response1, $mock_response2 );
 
         my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
+            host   => 'host', port => 1234, autodie => 1,
             driver => $mock
         );
 
         my @keys;
         $client->get_keys(
             foo => sub {
-                push @keys, $_[0];
-            }
-        );
-        @keys = sort @keys;
-
-        is( scalar @keys, 2 );
-        is( $keys[0],     1 );
-        is( $keys[1],     2 );
-    };
-};
-
-subtest "query_index" => sub {
-    plan tests => 3;
-
-    subtest "should throw error" => sub {
-        plan tests => 1;
-        my $mock = Test::MockObject->new;
-
-        my $mock_response = {
-            error => "ops",
-            code  => -1,
-            body  => undef
-        };
-
-        $mock->set_true('perform_request');
-        $mock->set_always( 'read_response', $mock_response );
-
-        my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
-            driver => $mock
-        );
-
-        throws_ok {
-            $client->query_index(
-                bucket => index => value => sub {
-                    fail("should not be called");
-                }
-            );
-        }
-        qr/Error in 'query_index' \(bucket: bucket, index: value\): ops/;
-    };
-
-
-    subtest "get no keys" => sub {
-        plan tests => 1;
-        my $mock = Test::MockObject->new;
-
-        my $mock_response = {
-            error => undef,
-            code  => 26,
-            body  => RpbIndexResp->encode( { keys => [] } )
-        };
-
-        $mock->set_true('perform_request');
-        $mock->set_always( 'read_response', $mock_response );
-
-        my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
-            driver => $mock
-        );
-
-        $client->query_index(
-            bucket => index => value => => sub {
-                fail("should not be called");
-            }
-        );
-
-        ok '1', 'no throw';
-    };
-
-    subtest "simple retrieve" => sub {
-        plan tests => 3;
-        my $mock = Test::MockObject->new;
-
-        my $mock_response1 = {
-            error => undef,
-            code  => 26,
-            body  => RpbIndexResp->encode( { keys => [ 1, 2 ] } )
-        };
-
-        $mock->set_true('perform_request');
-        $mock->set_series( 'read_response', $mock_response1, $mock_response2 );
-
-        my $client = Riak::Light->new(
-            host   => 'host', port => 1234, 
-            driver => $mock
-        );
-
-        my @keys;
-        $client->query_index(
-            bucket => index => value => sub {
                 push @keys, $_[0];
             }
         );

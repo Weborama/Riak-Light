@@ -14,7 +14,6 @@ use Const::Fast;
 use JSON;
 use Carp;
 use Module::Runtime qw(use_module);
-use Riak::Light::TraceIt;
 use Moo;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
@@ -24,7 +23,31 @@ has host    => ( is => 'ro', isa => Str,  required => 1 );
 has r       => ( is => 'ro', isa => Int,  default  => sub {2} );
 has w       => ( is => 'ro', isa => Int,  default  => sub {2} );
 has dw      => ( is => 'ro', isa => Int,  default  => sub {2} );
+has autodie => ( is => 'ro', isa => Bool, default  => sub {1}, trigger => 1 );
 has timeout => ( is => 'ro', isa => Num,  default  => sub {0.5} );
+has in_timeout  => ( is => 'lazy', trigger => 1 );
+has out_timeout => ( is => 'lazy', trigger => 1 );
+
+sub _trigger_autodie {
+  my ($self, $value) = @_;
+  carp "autodie will be disable in the next version" unless $value;
+}
+
+sub _trigger_in_timeout {
+  carp "this feature will be disabled in the next version, you should use just timeout instead";
+}
+
+sub _trigger_out_timeout {
+  carp "this feature will be disabled in the next version, you should use just timeout instead";
+}
+
+sub _build_in_timeout {
+    $_[0]->timeout;
+}
+
+sub _build_out_timeout {
+    $_[0]->timeout;
+}
 
 has timeout_provider => (
     is => 'ro',
@@ -61,7 +84,8 @@ sub _build_socket {
     # TODO: add a easy way to inject this proxy
     $self->timeout_provider->new(
         socket      => $socket,
-        timeout     => $self->timeout
+        in_timeout  => $self->in_timeout,
+        out_timeout => $self->out_timeout,
     );
 }
 
@@ -100,6 +124,20 @@ sub ping {
 
 sub is_alive {
     eval { $_[0]->ping };
+}
+
+sub get_keys {
+    state $check = compile(Any, Str, Optional[CodeRef]);
+    my ( $self, $bucket, $callback ) = $check->(@_);
+
+    my $body = RpbListKeysReq->encode( { bucket => $bucket } );
+    $self->_parse_response(
+        key       => "*",
+        bucket    => $bucket,
+        operation => $GET_KEYS,
+        body      => $body,
+        callback => $callback,
+    );
 }
 
 sub get_raw {
@@ -209,24 +247,9 @@ sub del {
     );
 }
 
-
-sub get_keys {
-    state $check = compile(Any, Str, Optional[CodeRef]);
-    my ( $self, $bucket, $callback ) = $check->(@_);
-
-    my $body = RpbListKeysReq->encode( { bucket => $bucket } );
-    $self->_parse_response(
-        key       => "*",
-        bucket    => $bucket,
-        operation => $GET_KEYS,
-        body      => $body,
-        callback => $callback,
-    );
-}
-
 sub query_index {
-     state $check = compile(Any, Str, Str, Str|ArrayRef, Optional[CodeRef]);
-     my ( $self, $bucket, $index, $value_to_match, $callback ) = $check->(@_);
+     state $check = compile(Any, Str, Str, Str|ArrayRef);
+     my ( $self, $bucket, $index, $value_to_match ) = $check->(@_);
 
      my $query_type = 0; # eq
      ref $value_to_match
@@ -249,7 +272,6 @@ sub query_index {
          bucket    => $bucket,
          operation => $QUERY_INDEX,
          body      => $body,
-         callback  => $callback, 
      );
  }
 
@@ -266,6 +288,9 @@ sub _parse_response {
     my $bucket       = $args{bucket};
     my $key          = $args{key};
     my $callback = $args{callback};
+    
+    $self->autodie
+      or undef $@;    ## no critic (RequireLocalizedPunctuationVars)
 
     $self->driver->perform_request(
         code => $request_code,
@@ -361,7 +386,7 @@ sub _process_get_response {
     my $content = $decoded_message->content;
     if ( ref($content) eq 'ARRAY' ) {
         my $value        = $content->[0]->value;
-        my $content_type = $content->[0]->content_type // "";
+        my $content_type = $content->[0]->content_type;
 
         return ( $content_type eq 'application/json' and $should_decode )
           ? decode_json($value)
@@ -388,18 +413,18 @@ sub _process_riak_error {
 sub _process_generic_error {
     my ( $self, $error, $operation, $bucket, $key ) = @_;
 
-    my $extra;
-    if ($operation eq 'ping') {
-      $extra = '';
-    } elsif ( $operation eq 'query_index') {
-      $extra = "(bucket: $bucket, index: $key)";
-    } else {
-      $extra = "(bucket: $bucket, key: $key)";
-    }
+    my $extra =
+      ( $operation ne 'ping' )
+      ? "(bucket: $bucket, key: $key)"
+      : q();
 
     my $error_message = "Error in '$operation' $extra: $error";
 
-    croak $error_message
+    croak $error_message if $self->autodie;
+
+    $@ = $error_message;    ## no critic (RequireLocalizedPunctuationVars)
+
+    undef;
 }
 
 1;
@@ -450,7 +475,8 @@ Riak::Light is a very light (and fast) Perl client for Riak using PBC
 interface. Support operations like ping, get, exists, put, del, and secondary
 indexes (so-called 2i) setting and querying.
 
-It is flexible to change the timeout backend for I/O operations. There is no
+It is flexible to change the timeout backend for I/O operations and can
+suppress 'die' in case of error (autodie) using the configuration. There is no
 auto-reconnect option. It can be very easily wrapped up by modules like
 L<Action::Retry> to manage flexible retry/reconnect strategies.
 
@@ -475,6 +501,10 @@ W value setting for this client. Default 2.
 =head3 dw
 
 DW value setting for this client. Default 2.
+
+=head3 autodie
+
+Boolean, if false each operation will return undef in case of error (stored in $@). Default is true.
 
 =head3 timeout
 

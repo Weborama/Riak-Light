@@ -15,7 +15,8 @@ with 'Riak::Light::Timeout';
 # ABSTRACT: proxy to read/write using IO::Select as a timeout provider only for READ operations
 
 has socket      => ( is => 'ro', required => 1 );
-has timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
+has in_timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
+has out_timeout => ( is => 'ro', isa      => Num, default => sub {0.5} );
 has select => ( is => 'ro', default => sub { IO::Select->new } );
 
 sub BUILD {
@@ -43,7 +44,7 @@ sub sysread {
     $self->is_valid or $! = ECONNRESET, return;    ## no critic (RequireLocalizedPunctuationVars)
 
     return $self->socket->sysread(@_)
-      if $self->select->can_read( $self->timeout );
+      if $self->select->can_read( $self->in_timeout );
 
     $self->clean();
 
