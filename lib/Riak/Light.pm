@@ -10,6 +10,7 @@ use Types::Standard -types;
 use English qw(-no_match_vars );
 use Scalar::Util qw(blessed);
 use IO::Socket;
+use Socket qw(TCP_NODELAY IPPROTO_TCP);
 use Const::Fast;
 use JSON;
 use Carp;
@@ -76,8 +77,11 @@ sub _build_socket {
     croak "Error ($!), can't connect to $host:$port"
       unless defined $socket;
 
-    return $socket unless defined $self->timeout_provider;
+    $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1) 
+      or croak "Cannot set tcp nodelay $! ($^E)";
 
+    return $socket unless defined $self->timeout_provider;
+    
     use Module::Load qw(load);
     load $self->timeout_provider;
 
@@ -276,6 +280,10 @@ sub query_index {
      my $query_type = 0; # eq
      ref $value_to_match
        and $query_type = 1; # range
+
+     croak "query index in stream mode not supported"
+      if $extra_parameters->{stream};
+
      my $body = RpbIndexReq->encode(
          {   index    => $index,
              bucket   => $bucket,
@@ -723,7 +731,7 @@ Based on the example in C<put>, here is how to query it:
     continuation => $continuation
    });
 
-  to fetch only the first 100 keys you can do this
+to fetch only the first 100 keys you can do this
 
   my $matching_keys = $client->query_index( 'bucket',  'field2_int', [ 40, 50], { max_results => 100 });
 

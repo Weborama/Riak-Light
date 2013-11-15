@@ -5,9 +5,10 @@ use Test::MockModule;
 use Riak::Light;
 use Test::TCP;
 
+use Socket qw(TCP_NODELAY IPPROTO_TCP);
 
 subtest "should not die if can connect" => sub {
-    plan tests => 1;
+    plan tests => 2;
 
     my $server = Test::TCP->new(
         code => sub {
@@ -25,12 +26,16 @@ subtest "should not die if can connect" => sub {
         },
     );
 
+    my $client;
     lives_ok {
-        Riak::Light->new(
+        $client = Riak::Light->new(
             host => '127.0.0.1',
-            port => $server->port
+            port => $server->port,
+            timeout_provider => undef,
         );
     };
+
+    is $client->driver->connector->socket->getsockopt(IPPROTO_TCP, TCP_NODELAY), 1, "should set TCP_NODELAY to 1";
 };
 
 subtest "should die if cant connect" => sub {
