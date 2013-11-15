@@ -114,6 +114,7 @@ const my $CODES => {
         $QUERY_INDEX => { request_code => 25, response_code => 26 },
     };
 
+const my $DEFAULT_MAX_RESULTS => 100;
 
 sub ping {
     $_[0]->_parse_response(
@@ -247,9 +248,30 @@ sub del {
     );
 }
 
+sub query_index_loop {
+  state $check = compile(Any, Str, Str, Str|ArrayRef, Optional[HashRef]);
+     my ( $self, $bucket, $index, $value_to_match, $extra_parameters ) = $check->(@_);
+
+  $extra_parameters //= {};   
+  $extra_parameters->{max_results} //= $DEFAULT_MAX_RESULTS;
+  
+  my @keys;
+  do {
+    
+    my ($temp_keys, $continuation, undef) = $self->query_index($bucket, $index, $value_to_match, $extra_parameters);
+    
+    $extra_parameters->{continuation} = $continuation;
+
+    push @keys, @{$temp_keys};
+
+  } while(defined $extra_parameters->{continuation});
+
+  return \@keys;
+}
+
 sub query_index {
-     state $check = compile(Any, Str, Str, Str|ArrayRef);
-     my ( $self, $bucket, $index, $value_to_match ) = $check->(@_);
+     state $check = compile(Any, Str, Str, Str|ArrayRef, Optional[HashRef]);
+     my ( $self, $bucket, $index, $value_to_match, $extra_parameters ) = $check->(@_);
 
      my $query_type = 0; # eq
      ref $value_to_match
@@ -262,13 +284,14 @@ sub query_index {
              ( range_min => $value_to_match->[0],
                range_max => $value_to_match->[1] )
              : (key => $value_to_match ),
+             %{$extra_parameters // {}},
          }
      );
 
      $self->_parse_response(
          $query_type ?
-           (key => '2i query on ' . $value_to_match->[0] . '...' . $value_to_match->[1])
-         : (key => $value_to_match ),
+           (key => "2i query on index='$index' => " . $value_to_match->[0] . '...' . $value_to_match->[1])
+         : (key => "2i query on index='$index' => " . $value_to_match ),
          bucket    => $bucket,
          operation => $QUERY_INDEX,
          body      => $body,
@@ -287,7 +310,7 @@ sub _parse_response {
     my $decode       = $args{decode};
     my $bucket       = $args{bucket};
     my $key          = $args{key};
-    my $callback = $args{callback};
+    my $callback     = $args{callback};
     
     $self->autodie
       or undef $@;    ## no critic (RequireLocalizedPunctuationVars)
@@ -358,14 +381,14 @@ sub _parse_response {
         # in case of a 'query_index' response
         if ($response_code == $QUERY_INDEX_RESPONSE_CODE) {
             my $obj = RpbIndexResp->decode( $response_body );
-            my @keys = @{$obj->keys // []};
-            if ($callback) {
-                $callback->($_) foreach @keys;
-                return;
+            
+            my $keys = $obj->keys // [];
+
+            if(wantarray) {
+              return ($keys, $obj->continuation, $obj->done);
             } else {
-                return \@keys;
+              return $keys;
             }
-            next;
         }
 
         # in case of no return value, signify success
@@ -413,10 +436,15 @@ sub _process_riak_error {
 sub _process_generic_error {
     my ( $self, $error, $operation, $bucket, $key ) = @_;
 
-    my $extra =
-      ( $operation ne 'ping' )
-      ? "(bucket: $bucket, key: $key)"
-      : q();
+    my $extra = '';
+
+    if( $operation eq $PING ) {
+      $extra = '';
+    } elsif ( $operation eq $QUERY_INDEX) {
+      $extra = "(bucket: $bucket, $key)";
+    } else {
+      $extra = "(bucket: $bucket, key: $key)";
+    }
 
     my $error_message = "Error in '$operation' $extra: $error";
 
@@ -680,10 +708,43 @@ range_min, the second element the range_max. other elements will be ignored.
 Based on the example in C<put>, here is how to query it:
 
   # exact match
-  my $matching_keys = $client->query_index( 'bucket',  'field2_int', 42 ),
+  my $matching_keys = $client->query_index( 'bucket',  'field2_int', 42 );
 
   # range match
-  my $matching_keys = $client->query_index( 'bucket',  'field2_int', [ 40, 50] ),
+  my $matching_keys = $client->query_index( 'bucket',  'field2_int', [ 40, 50] );
+
+  # with pagination
+  my ($matching_keys, $continuation, $done) = $client->query_index( 'bucket',  'field2_int', 42, { max_results => 100 });
+
+  to fetch the next 100 keys
+
+  my ($matching_keys, $continuation, $done) = $client->query_index( 'bucket',  'field2_int', 42, { 
+    max_results => 100,
+    continuation => $continuation
+   });
+
+  to fetch only the first 100 keys you can do this
+
+  my $matching_keys = $client->query_index( 'bucket',  'field2_int', [ 40, 50], { max_results => 100 });
+
+
+=head3 query_index_loop
+
+Instead using a normal loop around query_index to query 2i with pagination, like this:
+
+  do {
+      ($matching_keys, $continuation) = $client->query_index( 'bucket',  'field2_int', 42, { 
+      max_results => 100,
+      continuation => $continuation
+     });
+     push @keys, @{$matching_keys};
+  } while(defined $continuation);
+
+you can simply use query_index_loop helper method
+
+  my $matching_keys = $client->query_index_loop( 'bucket',  'field2_int', [ 40, 50], { max_results => 1024 });
+
+if you omit the max_results, the default value is 100
 
 =head1 SEE ALSO
 

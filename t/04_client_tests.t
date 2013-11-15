@@ -1,4 +1,4 @@
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
@@ -524,5 +524,196 @@ subtest "get_keys" => sub {
         is( scalar @keys, 2 );
         is( $keys[0],     1 );
         is( $keys[1],     2 );
+    };
+};
+
+
+subtest "query_index" => sub {
+    plan tests => 5;
+
+    subtest "should throw error" => sub {
+        plan tests => 1;
+        my $mock = Test::MockObject->new;
+
+        my $mock_response = {
+            error => "ops",
+            code  => -1,
+            body  => undef
+        };
+
+        $mock->set_true('perform_request');
+        $mock->set_always( 'read_response', $mock_response );
+
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
+
+        throws_ok {
+            $client->query_index(
+                foo => bar => 1
+            );
+        }
+        qr/Error in 'query_index' \(bucket: foo, 2i query on index='bar' => 1\): ops/;
+    };
+
+
+    subtest "get no keys" => sub {
+        plan tests => 1;
+        my $mock = Test::MockObject->new;
+
+        my $mock_response = {
+            error => undef,
+            code  => 26,
+            body  => RpbIndexResp->encode( { keys => [], done => undef, continuation => undef } )
+        };
+
+        $mock->set_true('perform_request');
+        $mock->set_always( 'read_response', $mock_response );
+
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
+
+        my $keys = $client->query_index(
+            foo => bar => 1
+        );
+
+        is( scalar @{$keys}, 0 );
+    };
+
+    subtest "simple retrieve" => sub {
+        plan tests => 2;
+        my $mock = Test::MockObject->new;
+
+        my $mock_response = {
+            error => undef,
+            code  => 26,
+            body  => RpbIndexResp->encode( { keys => [ 1, 2 , 3], done => undef, continuation => undef } )
+        };
+
+        $mock->set_true('perform_request');
+        $mock->set_always( 'read_response', $mock_response );
+
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
+
+        my $keys = $client->query_index(
+            foo => bar => 1
+        );
+
+        is scalar @{$keys}, 3;
+        is_deeply [ sort @{$keys} ], [ 1, 2 ,3];
+    };
+
+    subtest "simple retrieve (wantarray)" => sub {
+        plan tests => 11;
+        my $mock = Test::MockObject->new;
+
+        my $mock_response = {
+            error => undef,
+            code  => 26,
+            body  => RpbIndexResp->encode( { keys => [ 1, 2 , 3], done => 0, continuation => 'foo' } )
+        };
+
+        $mock->set_true('perform_request');
+        $mock->set_always( 'read_response', $mock_response );
+
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
+
+        my ($keys, $continuation, $done) = $client->query_index(
+            foo => bar => 1, { max_results => 1024}
+        );
+
+        is_deeply [ sort @{$keys} ], [ 1, 2 ,3];
+        is $continuation, 'foo';
+        is $done, 0;
+        my ($name, $args) = $mock->next_call();
+
+        is $name, 'perform_request', 'call perform_request';
+        my (undef, %hash) = @{$args};
+
+        my $request = RpbIndexReq->decode( $hash{body} );
+
+        is $request->index, 'bar';
+        is $request->bucket, 'foo';
+        is $request->key, 1;
+        is $request->qtype, 0;
+        is $request->max_results, 1024;
+        is $request->continuation, undef;
+
+        $mock->called_ok('read_response');
+    };
+
+    subtest "query_index_loop" => sub {
+        plan tests => 18;
+        my $mock = Test::MockObject->new;
+
+        my $mock_response1 = {
+            error => undef,
+            code  => 26,
+            body  => RpbIndexResp->encode( { keys => [ 1, 2 ], done => 0, continuation => 'foo' } )
+        };
+
+        my $mock_response2 = {
+            error => undef,
+            code  => 26,
+            body  => RpbIndexResp->encode( { keys => [ 3, 4], done => 1, continuation => undef } )
+        };
+
+        $mock->set_true('perform_request');
+        $mock->set_series( 'read_response', $mock_response1, $mock_response2 );
+
+        my $client = Riak::Light->new(
+            host   => 'host', port => 1234, autodie => 1,
+            driver => $mock
+        );
+
+        my $keys = $client->query_index_loop(
+            foo => bar => 1
+        );
+
+        is scalar @{$keys}, 4;
+        is_deeply [ sort @{$keys} ], [ 1, 2 ,3, 4];
+
+        my ($name, $args) = $mock->next_call();
+
+        is $name, 'perform_request', 'call perform_request';
+        my (undef, %hash) = @{$args};
+
+        my $request = RpbIndexReq->decode( $hash{body} );
+
+        is $request->index, 'bar';
+        is $request->bucket, 'foo';
+        is $request->key, 1;
+        is $request->qtype, 0;
+        is $request->max_results, 100;
+        is $request->continuation, undef;
+
+        ($name, $args) = $mock->next_call();
+        is $name, 'read_response', 'call perform_request';
+        
+        ($name, $args) = $mock->next_call();
+
+        is $name, 'perform_request', 'call perform_request again';
+        (undef, %hash) = @{$args};
+
+        $request = RpbIndexReq->decode( $hash{body} );
+
+        is $request->index, 'bar';
+        is $request->bucket, 'foo';
+        is $request->key, 1;
+        is $request->qtype, 0;
+        is $request->max_results, 100;
+        is $request->continuation, 'foo';
+
+        ($name, $args) = $mock->next_call();
+        is $name, 'read_response', 'call perform_request again';
     };
 };
