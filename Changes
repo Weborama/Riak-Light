@@ -1,3 +1,6 @@
+0.072 2013-11-15 17:26:00 GMT 
+   * TCP_NODELAY should be configurable (Tiago Peczenyj)
+
 0.071 2013-11-15 16:55:00 GMT 
    * Add TCP_NODELAY 1 to socket (Tiago Peczenyj)
 
