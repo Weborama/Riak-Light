@@ -26,7 +26,7 @@ has w       => ( is => 'ro', isa => Int,  default  => sub {2} );
 has dw      => ( is => 'ro', isa => Int,  default  => sub {2} );
 has autodie => ( is => 'ro', isa => Bool, default  => sub {1}, trigger => 1 );
 has timeout => ( is => 'ro', isa => Num,  default  => sub {0.5} );
-has tcp_nodelay => ( is => 'ro', isa => Int,  default  => sub {1} );
+has tcp_nodelay => ( is => 'ro', isa => Bool,  default  => sub {1} );
 has in_timeout  => ( is => 'lazy', trigger => 1 );
 has out_timeout => ( is => 'lazy', trigger => 1 );
 
@@ -556,6 +556,12 @@ Timeout for read operations. Default is timeout value.
 =head3 out_timeout
 
 Timeout for write operations. Default is timeout value.
+
+=head3 tcp_nodelay
+
+Boolean, enable or disable TCP_NODELAY. If True (default), disables Nagle's Algorithm.
+
+See more in: L<http://docs.basho.com/riak/latest/dev/references/client-implementation/#Nagle-s-Algorithm>.
 
 =head3 timeout_provider
 
