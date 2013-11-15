@@ -26,6 +26,7 @@ has w       => ( is => 'ro', isa => Int,  default  => sub {2} );
 has dw      => ( is => 'ro', isa => Int,  default  => sub {2} );
 has autodie => ( is => 'ro', isa => Bool, default  => sub {1}, trigger => 1 );
 has timeout => ( is => 'ro', isa => Num,  default  => sub {0.5} );
+has tcp_nodelay => ( is => 'ro', isa => Int,  default  => sub {1} );
 has in_timeout  => ( is => 'lazy', trigger => 1 );
 has out_timeout => ( is => 'lazy', trigger => 1 );
 
@@ -77,9 +78,11 @@ sub _build_socket {
     croak "Error ($!), can't connect to $host:$port"
       unless defined $socket;
 
-    $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1) 
-      or croak "Cannot set tcp nodelay $! ($^E)";
-
+    if($self->tcp_nodelay){
+      $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1) 
+        or croak "Cannot set tcp nodelay $! ($^E)";
+    }
+    
     return $socket unless defined $self->timeout_provider;
     
     use Module::Load qw(load);
