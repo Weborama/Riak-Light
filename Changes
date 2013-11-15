@@ -1,3 +1,6 @@
+0.061 2013-11-15 15:43:00 GMT 
+   * Support pagination results (Tiago Peczenyj)
+
 0.061 2013-09-10 15:39:00 GMT 
    * Support multi-values in secondary indexes (Damien Krotkine)
 
