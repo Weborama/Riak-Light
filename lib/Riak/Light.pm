@@ -285,7 +285,7 @@ sub query_index {
        and $query_type = 1; # range
 
      croak "query index in stream mode not supported"
-      if $extra_parameters->{stream};
+      if defined $extra_parameters && $extra_parameters->{stream};
 
      my $body = RpbIndexReq->encode(
          {   index    => $index,
@@ -306,6 +306,7 @@ sub query_index {
          bucket    => $bucket,
          operation => $QUERY_INDEX,
          body      => $body,
+         paginate  => defined $extra_parameters && exists $extra_parameters->{max_results},
      );
  }
 
@@ -322,6 +323,7 @@ sub _parse_response {
     my $bucket       = $args{bucket};
     my $key          = $args{key};
     my $callback     = $args{callback};
+    my $paginate     = $args{paginate};
     
     $self->autodie
       or undef $@;    ## no critic (RequireLocalizedPunctuationVars)
@@ -395,7 +397,7 @@ sub _parse_response {
             
             my $keys = $obj->keys // [];
 
-            if(wantarray) {
+            if($paginate and wantarray) {
               return ($keys, $obj->continuation, $obj->done);
             } else {
               return $keys;

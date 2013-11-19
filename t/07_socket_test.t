@@ -36,7 +36,7 @@ subtest "should not die if can connect" => sub {
     };
 
     is $client->tcp_nodelay, 1, 'default, should be enable';
-    is $client->driver->connector->socket->getsockopt(IPPROTO_TCP, TCP_NODELAY), 1, "should set TCP_NODELAY to 1";
+    ok $client->driver->connector->socket->getsockopt(IPPROTO_TCP, TCP_NODELAY), "should set TCP_NODELAY to 1";
 };
 
 subtest "should not die if can connect wihout TCP_NODELAY" => sub {
