@@ -845,7 +845,7 @@ Example:
       return [[riakObject.key, (val ? val.length : 0 )]];
     }"}}]}';
     
-  my $response = $client->map_reduce();
+  my $response = $client->map_reduce_raw($map_reduce_json, 'application/json');
 
 will return something like
   [
