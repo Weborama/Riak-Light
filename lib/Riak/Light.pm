@@ -837,6 +837,7 @@ This is an alias for map_reduce_raw with content-type json
 Performa a map/reduce operation. Accept callback.
 
 Example:
+
   my $map_reduce_json = '{
     "inputs":"training",
     "query":[{"map":{"language":"javascript",
@@ -848,6 +849,7 @@ Example:
   my $response = $client->map_reduce_raw($map_reduce_json, 'application/json');
 
 will return something like
+
   [
     {'response' => [['foo',1]],'phase' => 0},
     {'response' => [['bam',3]],'phase' => 0},
@@ -864,6 +866,7 @@ a hashref with response (decoded if json) and phase value. you can also pass a c
     });
     
 this callback will be called 4 times, with this response (decoded from json)
+
  [['foo', 1]]
  [['bam', 3]]
  [['bar', 4]]
