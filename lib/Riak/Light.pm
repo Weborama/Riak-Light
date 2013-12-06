@@ -106,10 +106,12 @@ const my $PUT      => 'put';
 const my $DEL      => 'del';
 const my $GET_KEYS => 'get_keys';
 const my $QUERY_INDEX => 'query_index';
+const my $MAP_REDUCE  => 'map_reduce';
 
 const my $ERROR_RESPONSE_CODE    => 0;
 const my $GET_RESPONSE_CODE      => 10;
 const my $GET_KEYS_RESPONSE_CODE => 18;
+const my $MAP_REDUCE_RESPONSE_CODE  => 24;
 const my $QUERY_INDEX_RESPONSE_CODE => 26;
 
 const my $CODES => {
@@ -118,7 +120,8 @@ const my $CODES => {
         $PUT      => { request_code => 11, response_code => 12 },
         $DEL      => { request_code => 13, response_code => 14 },
         $GET_KEYS => { request_code => 17, response_code => 18 },
-        $QUERY_INDEX => { request_code => 25, response_code => 26 },
+        $MAP_REDUCE => { request_code => 23, response_code => 24 },
+        $QUERY_INDEX => { request_code => 25, response_code => 26 },        
     };
 
 const my $DEFAULT_MAX_RESULTS => 100;
@@ -309,6 +312,37 @@ sub query_index {
          paginate  => defined $extra_parameters && exists $extra_parameters->{max_results},
      );
  }
+ 
+sub map_reduce {
+  state $check = compile(Any, Str, Optional[CodeRef]);
+  my ( $self, $request, $callback) = $check->(@_); 
+  
+  my @args = ($request, 'application/json');
+  push @args, $callback if $callback;
+  
+  $self->map_reduce_raw(@args);
+} 
+
+sub map_reduce_raw {
+  state $check = compile(Any, Str, Str, Optional[CodeRef]);
+  my ( $self, $request, $content_type, $callback) = $check->(@_);
+  
+  my $body = RpbMapRedReq->encode(
+    {
+      request => $request,
+      content_type => $content_type,
+    }
+  );
+
+  $self->_parse_response(
+      key       => 'no-key',
+      bucket    => 'no-bucket',
+      operation => $MAP_REDUCE,
+      body      => $body,
+      callback  => $callback,
+      decode    => ($content_type eq 'application/json'),
+  );
+} 
 
 sub _parse_response {
     my ( $self, %args ) = @_;
@@ -389,10 +423,8 @@ sub _parse_response {
                   and return \@results;
             }
             next;
-        }
-
-        # in case of a 'query_index' response
-        if ($response_code == $QUERY_INDEX_RESPONSE_CODE) {
+        } # in case of a 'query_index' response
+        elsif ($response_code == $QUERY_INDEX_RESPONSE_CODE) {
             my $obj = RpbIndexResp->decode( $response_body );
             
             my $keys = $obj->keys // [];
@@ -402,6 +434,23 @@ sub _parse_response {
             } else {
               return $keys;
             }
+        }
+        elsif ($response_code == $MAP_REDUCE_RESPONSE_CODE) {
+          my $obj = RpbMapRedResp->decode( $response_body );
+          
+          my $phase    = $obj->phase;
+          my $response =  ($decode) ? decode_json($obj->response // '[]') : $obj->response;
+          
+          if ($callback){
+            $obj->done
+              and return;
+            $callback->( $response, $phase);                          
+          } else {
+            $obj->done
+              and return \@results;     
+            push @results, { phase => $phase, response => $response };         
+          }
+          next;        
         }
 
         # in case of no return value, signify success
@@ -455,6 +504,8 @@ sub _process_generic_error {
       $extra = '';
     } elsif ( $operation eq $QUERY_INDEX) {
       $extra = "(bucket: $bucket, $key)";
+    } elsif ( $operation eq $MAP_REDUCE) {
+      $extra = ''; # maybe add the sha1 of the request?  
     } else {
       $extra = "(bucket: $bucket, key: $key)";
     }
@@ -509,6 +560,18 @@ __END__
      # you should use another client inside this callback!
      $another_client->del(foo => $key);
   });
+  
+  # perform 2i queries
+  my $keys = $client->query_index( $bucket_name => 'index_test_field_bin', 'plop');
+  
+  # perform map / reduce operations
+  my $response = $client->map_reduce('{
+      "inputs":"training",
+      "query":[{"map":{"language":"javascript",
+      "source":"function(riakObject) {
+        var val = riakObject.values[0].data.match(/pizza/g);
+        return [[riakObject.key, (val ? val.length : 0 )]];
+      }"}}]}');  
   
 =head1 DESCRIPTION
 
@@ -764,6 +827,48 @@ you can simply use query_index_loop helper method
   my $matching_keys = $client->query_index_loop( 'bucket',  'field2_int', [ 40, 50], { max_results => 1024 });
 
 if you omit the max_results, the default value is 100
+
+=head3 map_reduce
+
+This is an alias for map_reduce_raw with content-type json
+
+=head3 map_reduce_raw
+
+Performa a map/reduce operation. Accept callback.
+
+Example:
+  my $map_reduce_json = '{
+    "inputs":"training",
+    "query":[{"map":{"language":"javascript",
+    "source":"function(riakObject) {
+      var val = riakObject.values[0].data.match(/pizza/g);
+      return [[riakObject.key, (val ? val.length : 0 )]];
+    }"}}]}';
+    
+  my $response = $client->map_reduce();
+
+will return something like
+  [
+    {'response' => [['foo',1]],'phase' => 0},
+    {'response' => [['bam',3]],'phase' => 0},
+    {'response' => [['bar',4]],'phase' => 0},
+    {'response' => [['baz',0]],'phase' => 0}
+  ]    
+
+a hashref with response (decoded if json) and phase value. you can also pass a callback
+
+  $client->map_reduce( $map_reduce_json , sub { 
+      my ($response, $phase) = @_;
+      
+      # process the response
+    });
+    
+this callback will be called 4 times, with this response (decoded from json)
+ [['foo', 1]]
+ [['bam', 3]]
+ [['bar', 4]]
+ [['baz', 0]]
+
 
 =head1 SEE ALSO
 

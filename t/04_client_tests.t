@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More tests => 8;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
@@ -716,4 +716,120 @@ subtest "query_index" => sub {
         ($name, $args) = $mock->next_call();
         is $name, 'read_response', 'call perform_request again';
     };
+};
+
+subtest "map_reduce" => sub {
+  plan tests => 3;
+
+  subtest "should throw error" => sub {
+      plan tests => 1;
+      my $mock = Test::MockObject->new;
+
+      my $mock_response = {
+          error => "ops",
+          code  => -1,
+          body  => undef
+      };
+
+      $mock->set_true('perform_request');
+      $mock->set_always( 'read_response', $mock_response );
+
+      my $client = Riak::Light->new(
+          host   => 'host', port => 1234, autodie => 1,
+          driver => $mock
+      );
+
+      throws_ok {
+          $client->map_reduce('some-js-map-reduce...');
+      }
+      qr/Error in 'map_reduce' : ops/,
+      'should die with the correct message';
+  };
+  
+  subtest "should return arrayref" => sub {
+      plan tests => 2;
+      my $mock = Test::MockObject->new;
+
+      my $mock_response1 = {
+          error => undef,
+          code  => 24,
+          body  => RpbMapRedResp->encode({
+            done => undef,
+            phase => 0,
+            response => '[["foo",1]]',
+          })
+      };
+      my $mock_response2 = {
+          error => undef,
+          code  => 24,
+          body  => RpbMapRedResp->encode({
+            done => 1,
+            phase => undef,
+            response => undef,
+          })
+      };      
+
+      $mock->set_true('perform_request');
+      $mock->set_series( 'read_response', $mock_response1, $mock_response2);
+
+
+      my $client = Riak::Light->new(
+          host   => 'host', port => 1234, autodie => 1,
+          driver => $mock
+      );
+
+      my $arrayref;
+      lives_ok {
+          $arrayref = $client->map_reduce('some-js-map-reduce...');
+      }
+      'should not die';
+      
+      is_deeply [{
+        phase => 0,
+        response => [["foo",1]],
+      }], $arrayref, 'should return';
+  };
+  subtest "should call the callback" => sub {
+      plan tests => 3;
+      my $mock = Test::MockObject->new;
+
+      my $mock_response1 = {
+          error => undef,
+          code  => 24,
+          body  => RpbMapRedResp->encode({
+            done => undef,
+            phase => 0,
+            response => '[["foo",1]]',
+          })
+      };
+      my $mock_response2 = {
+          error => undef,
+          code  => 24,
+          body  => RpbMapRedResp->encode({
+            done => 1,
+            phase => undef,
+            response => undef,
+          })
+      };      
+
+      $mock->set_true('perform_request');
+      $mock->set_series( 'read_response', $mock_response1, $mock_response2);
+
+      my $client = Riak::Light->new(
+          host   => 'host', port => 1234, autodie => 1,
+          driver => $mock
+      );
+
+      my ($phase, $response);
+      my $callback = sub {
+        ($response, $phase) = @_;
+      };
+      lives_ok {
+          $client->map_reduce('some-js-map-reduce...', $callback);
+      }
+      'should not die';
+      
+      is $phase, 0, 'phase should be 1';
+      is_deeply [["foo",1]], $response, 'should return';
+  };    
 };
