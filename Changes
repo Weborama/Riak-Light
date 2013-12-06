@@ -1,4 +1,10 @@
-0.08 2013-12-06 12:00:00 GMT
+0.082 2013-12-06 14:00:00 GMT
+   * map reduce accept string or hashref query (Tiago Peczenyj)
+
+0.081 2013-12-06 13:00:00 GMT
+   * fix documentatiom (Tiago Peczenyj)
+
+0.080 2013-12-06 12:00:00 GMT
    * Support to map_reduce operations (Tiago Peczenyj)
 
 0.072 2013-11-15 17:26:00 GMT 

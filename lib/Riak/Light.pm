@@ -314,10 +314,13 @@ sub query_index {
  }
  
 sub map_reduce {
-  state $check = compile(Any, Str, Optional[CodeRef]);
+  state $check = compile(Any, Any, Optional[CodeRef]);
   my ( $self, $request, $callback) = $check->(@_); 
+
+  my @args;
   
-  my @args = ($request, 'application/json');
+  push @args, ref($request) ? encode_json($request): $request;
+  push @args, 'application/json';
   push @args, $callback if $callback;
   
   $self->map_reduce_raw(@args);
@@ -830,11 +833,11 @@ if you omit the max_results, the default value is 100
 
 =head3 map_reduce
 
-This is an alias for map_reduce_raw with content-type json
+This is an alias for map_reduce_raw with content-type 'application/json'
 
 =head3 map_reduce_raw
 
-Performa a map/reduce operation. Accept callback.
+Performa a map/reduce operation. You can use content-type 'application/json' or 'application/x-erlang-binary' Accept callback.
 
 Example:
 
@@ -872,6 +875,36 @@ this callback will be called 4 times, with this response (decoded from json)
  [['bar', 4]]
  [['baz', 0]]
 
+using map_reduce method, you can also use a hashref as a map reduce query:
+
+  my $json_hash = {
+      inputs => "training",
+      query => [{
+        map => {
+          language =>"javascript",
+          source =>"function(riakObject) {
+            var val = riakObject.values[0].data.match(/pizza/g);
+            return [[riakObject.key, (val ? val.length : 0 )]];
+          }"
+        }
+      }]
+    };
+  
+  $client->map_reduce($json_hash, sub { ... });
+  
+map_reduce encode/decode to json format. If you need control with the format (like to use with erlang), you should use map_reduce_raw.  
+
+you can use erlang functions but using the json format (see L<this example |http://docs.basho.com/riak/latest/dev/advanced/mapreduce/#Erlang-Functions>).
+
+   {"inputs":"messages","query":[{"map":{"language":"erlang","module":"mr_example","function":"get_keys"}}]}
+
+More information:
+
+L<protocol buffers mapreduce api|http://docs.basho.com/riak/latest/dev/references/protocol-buffers/mapreduce/>
+
+L<mapreduce basics|http://docs.basho.com/riak/latest/dev/using/mapreduce/>
+
+L<advanced mapreduce|http://docs.basho.com/riak/latest/dev/advanced/mapreduce/>
 
 =head1 SEE ALSO
 
