@@ -1,4 +1,4 @@
-use Test::More tests => 8;
+use Test::More tests => 9;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
@@ -172,6 +172,78 @@ subtest "ping" => sub {
         qr/Error in 'ping' : $errmsg/,
           "should die";
     };
+};
+
+subtest 'get_all_indexes' => sub {
+  plan tests => 2;
+  subtest 'should list indexes' => sub {
+    plan tests => 1;
+    my $mock = Test::MockObject->new;
+
+    my $mock_response = {
+        error => undef,
+        code  => 10,
+        body  => RpbGetResp->encode(
+            {   content => {
+                    value        => encode_json({ foo => 1}),
+                    content_type => 'application/json',
+                    indexes      => [ 
+                      {key => 'foo_int', value => 1},
+                      {key => 'foo_int', value => 2},
+                      {key => 'foo_bin', value => 'bar'},
+                    ],
+                }
+            }
+        )
+    };
+
+    $mock->set_true('perform_request');
+    $mock->set_always( read_response => $mock_response );
+
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 1,
+        driver => $mock
+    );
+
+    is_deeply(
+        $client->get_all_indexes( foo => "bar" ), [ 
+          {key => 'foo_int', value => 1},
+          {key => 'foo_int', value => 2},
+          {key => 'foo_bin', value => 'bar'},
+        ],
+        "should return the same structure"
+    );
+  };
+
+  subtest 'should not list indexes if it is missing' => sub {
+    plan tests => 1;
+    my $mock = Test::MockObject->new;
+
+    my $mock_response = {
+        error => undef,
+        code  => 10,
+        body  => RpbGetResp->encode(
+            {   content => {
+                    value        => encode_json({ foo => 1 }),
+                    content_type => 'application/json',
+                }
+            }
+        )
+    };
+
+    $mock->set_true('perform_request');
+    $mock->set_always( read_response => $mock_response );
+
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 1,
+        driver => $mock
+    );
+
+    is_deeply(
+        $client->get_all_indexes( foo => "bar" ), [],
+        "should return the empty structure"
+    );
+  };  
 };
 
 subtest "get" => sub {
@@ -831,5 +903,5 @@ subtest "map_reduce" => sub {
       
       is $phase, 0, 'phase should be 1';
       is_deeply [["foo",1]], $response, 'should return';
-  };    
+  };
 };

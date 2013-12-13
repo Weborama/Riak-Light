@@ -154,13 +154,22 @@ sub get_keys {
 sub get_raw {
     state $check = compile(Any, Str, Str);
     my ( $self, $bucket, $key ) = $check->(@_);
-    $self->_fetch( $bucket, $key, 0 );
+    my $response = $self->_fetch( $bucket, $key, 0 );
+    defined $response and $response->{value};
 }
 
 sub get {
     state $check = compile(Any, Str, Str);
     my ( $self, $bucket, $key ) = $check->(@_);
-    $self->_fetch( $bucket, $key, 1 );
+    my $response = $self->_fetch( $bucket, $key, 1 );
+    defined $response and $response->{value};
+}
+
+sub get_all_indexes {
+    state $check = compile(Any, Str, Str);
+    my ( $self, $bucket, $key ) = $check->(@_);
+    my $response = $self->_fetch( $bucket, $key, 0 );
+    (defined $response ) ? $response->{indexes} : [];
 }
 
 sub exists {
@@ -463,22 +472,28 @@ sub _parse_response {
 }
 
 sub _process_get_response {
-    my ( $self, $encoded_message, $bucket, $key, $decode ) = @_;
+    my ( $self, $encoded_message, $bucket, $key, $should_decode ) = @_;
 
     $self->_process_generic_error( "Undefined Message", 'get', $bucket, $key )
       unless ( defined $encoded_message );
 
-    my $should_decode   = $decode;
     my $decoded_message = RpbGetResp->decode($encoded_message);
 
     my $content = $decoded_message->content;
     if ( ref($content) eq 'ARRAY' ) {
         my $value        = $content->[0]->value;
+        my $indexes      = $content->[0]->indexes;
         my $content_type = $content->[0]->content_type;
-
-        return ( $content_type eq 'application/json' and $should_decode )
-          ? decode_json($value)
-          : $value;
+        
+        my $decode       = $should_decode && ($content_type eq 'application/json');
+        return { 
+          value   => ( $decode ) ? decode_json($value) : $value,
+          indexes => [
+            map { 
+              +{ value => $_->value, key => $_->key } 
+            } @{ $indexes // [] }
+          ] 
+        };
     }
 
     undef;
@@ -565,7 +580,10 @@ __END__
   });
   
   # perform 2i queries
-  my $keys = $client->query_index( $bucket_name => 'index_test_field_bin', 'plop');
+  my $keys    = $client->query_index( $bucket_name => 'index_test_field_bin', 'plop');
+  
+  # list all 2i indexes and values
+  my $indexes = $client->get_all_indexes( $bucket_name => $key );
   
   # perform map / reduce operations
   my $response = $client->map_reduce('{
@@ -710,6 +728,20 @@ If you need decode the json, you should use L<get> instead.
 Perform a fetch operation but with head => 0, and the if there is something
 stored in the bucket/key.
 
+=head3 get_all_indexes
+
+  $client->get_all_indexes(bucket => 'key');
+
+Perform a fetch operation but instead return the content, return a hashref with a mapping between index name and an arrayref with all possible values (or empty arrayref if none). For example one possible return is:
+
+  [
+      { key => 'index_test_field_bin', value => 'plop' },
+      { key => 'index_test_field2_bin', value => 'plop2' }, 
+      { key => 'index_test_field2_bin', value => 'plop3' }, 
+  ]
+  
+IMPORT: this arrayref is unsortered.
+    
 =head3 put
 
   $client->put('bucket', 'key', { some_values => [1,2,3] });
