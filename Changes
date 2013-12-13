@@ -1,3 +1,9 @@
+0.084 2013-12-13 14:00:00 GMT
+   * improve map indexes (Tiago Peczenyj)
+
+0.083 2013-12-13 12:00:00 GMT
+   * add get_all_indexes method (Tiago Peczenyj)
+
 0.082 2013-12-06 14:00:00 GMT
    * map reduce accept string or hashref query (Tiago Peczenyj)
 

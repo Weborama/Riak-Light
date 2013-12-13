@@ -169,7 +169,12 @@ sub get_all_indexes {
     state $check = compile(Any, Str, Str);
     my ( $self, $bucket, $key ) = $check->(@_);
     my $response = $self->_fetch( $bucket, $key, 0 );
-    (defined $response ) ? $response->{indexes} : [];
+    
+    return (! defined $response ) ? [] : [
+      map { 
+        +{ value => $_->value, key => $_->key } 
+      } @{ $response->{indexes} // [] }
+    ];
 }
 
 sub exists {
@@ -479,20 +484,14 @@ sub _process_get_response {
 
     my $decoded_message = RpbGetResp->decode($encoded_message);
 
-    my $content = $decoded_message->content;
-    if ( ref($content) eq 'ARRAY' ) {
-        my $value        = $content->[0]->value;
-        my $indexes      = $content->[0]->indexes;
-        my $content_type = $content->[0]->content_type;
+    my $contents = $decoded_message->content;
+    if ( ref($contents) eq 'ARRAY' ) {
+        my $content      = $contents->[0];
         
-        my $decode       = $should_decode && ($content_type eq 'application/json');
+        my $decode       = $should_decode && ($content->content_type eq 'application/json');
         return { 
-          value   => ( $decode ) ? decode_json($value) : $value,
-          indexes => [
-            map { 
-              +{ value => $_->value, key => $_->key } 
-            } @{ $indexes // [] }
-          ] 
+          value   => ( $decode ) ? decode_json($content->value) : $content->value,
+          indexes => $content->indexes,
         };
     }
 
