@@ -1,7 +1,7 @@
 Riak-Light
 ==========
 
-Fast and lightweight Perl client for Riak
+Fast and lightweight Perl client for Riak [![CPAN version](https://badge.fury.io/pl/Riak-Light.png)](http://badge.fury.io/pl/Riak-Light)
 
 ```perl
     # create a new instance - using pbc only
