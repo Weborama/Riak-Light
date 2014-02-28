@@ -1,4 +1,4 @@
-use Test::More tests => 9;
+use Test::More tests => 10;
 use Test::Exception;
 use Test::MockObject;
 use Riak::Light;
@@ -172,6 +172,114 @@ subtest "ping" => sub {
         qr/Error in 'ping' : $errmsg/,
           "should die";
     };
+};
+
+subtest "vclock" => sub {
+  plan tests => 3;
+  subtest "should return the vclock" => sub {
+    plan tests => 1;
+    my $mock = Test::MockObject->new;
+
+    my $mock_response = {
+        error => undef,
+        code  => 10,
+        body  => RpbGetResp->encode(
+            {   content => {
+                    value        => encode_json({ foo => 1}),
+                    content_type => 'application/json',
+                },
+                vclock       => 12345,
+            }
+        )
+    };
+
+    $mock->set_true('perform_request');
+    $mock->set_always( read_response => $mock_response );
+
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 1,
+        driver => $mock
+    );
+
+    is(
+        $client->get_vclock( foo => "bar" ), 12345,
+        "should return the same vclock"
+    );
+  };
+
+  subtest "should return the vclock in get_full" => sub {
+    plan tests => 1;
+    my $mock = Test::MockObject->new;
+
+    my $mock_response = {
+        error => undef,
+        code  => 10,
+        body  => RpbGetResp->encode(
+            {   content => {
+                    value        => encode_json({ foo => 1}),
+                    content_type => 'application/json',
+                    indexes      => [{key => 'foo_int', value => 1}]
+                },
+                vclock       => 12345,
+            }
+        )
+    };
+
+    $mock->set_true('perform_request');
+    $mock->set_always( read_response => $mock_response );
+
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 1,
+        driver => $mock
+    );
+
+    is_deeply(
+        $client->get_full( foo => "bar" ), 
+        {
+            value => { foo => 1},
+            indexes => [{key => 'foo_int', value => 1}],
+            vclock => 12345
+        },
+        "should return the same vclock"
+    );
+  };
+
+  subtest "should return the vclock in get_full_raw" => sub {
+    plan tests => 1;
+    my $mock = Test::MockObject->new;
+
+    my $mock_response = {
+        error => undef,
+        code  => 10,
+        body  => RpbGetResp->encode(
+            {   content => {
+                    value        => encode_json({ foo => 1}),
+                    content_type => 'application/json',
+                    indexes      => [{key => 'foo_int', value => 1}]
+                },
+                vclock       => 12345,
+            }
+        )
+    };
+
+    $mock->set_true('perform_request');
+    $mock->set_always( read_response => $mock_response );
+
+    my $client = Riak::Light->new(
+        host   => 'host', port => 1234, autodie => 1,
+        driver => $mock
+    );
+
+    is_deeply(
+        $client->get_full_raw( foo => "bar" ), 
+        {
+            value => encode_json{ foo => 1},
+            indexes => [{key => 'foo_int', value => 1}],
+            vclock => 12345
+        },
+        "should return the same vclock"
+    );
+  };    
 };
 
 subtest 'get_all_indexes' => sub {

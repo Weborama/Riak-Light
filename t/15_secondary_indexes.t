@@ -93,11 +93,16 @@ subtest "query 2i" => sub {
           ], 
           "querying all indexes from key$_"
         );
+        
         is_deeply( $client->get_all_indexes($bucket_name => "other_key$_"), 
           [ 
               { key => 'index_test_field3_int', value => $_ },
           ], "querying all indexes from other_key$_"
         );
+
+        is $client->get_index_value($bucket_name => "key$_" => 'index_test_field_bin'), 
+         'plop', 
+          'should return the value of index_test_field_bin index (plop"';
     }
 
     foreach (1..50) {

@@ -13,7 +13,7 @@ use Riak::Light;
 use JSON;
 
 subtest "map reduce" => sub {
-    plan tests => 3;
+    plan tests => 5;
   
     my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
@@ -37,7 +37,7 @@ subtest "map reduce" => sub {
     
     my %expected = (
       'bar' => 4,
-      'baz' => 0,
+#      'baz' => 0,
       'bam' => 3,
       'foo' => 1,
     );
@@ -80,6 +80,9 @@ subtest "map reduce" => sub {
           $_->{response}->[0]->[0] => $_->{response}->[0]->[1]
       } @{ $response };
 
+      my $zero = delete $got{'baz'};
+
+      ok (! $zero, 'baz should be zero or undef');
       eq_or_diff \%got , \%expected, "should return the proper data structure for query as: " 
         . ((ref $json_query) ? "reference" : "string") ;      
     }
