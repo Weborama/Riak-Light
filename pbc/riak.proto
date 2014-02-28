@@ -107,3 +107,9 @@ message RpbMapRedResp {
     optional bytes response = 2;
     optional bool done = 3;
 }
+message RpbSetClientIdReq {
+    required bytes client_id = 1;
+}
+message RpbGetClientIdResp {
+    required bytes client_id = 1;
+}

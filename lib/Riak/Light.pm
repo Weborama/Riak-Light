@@ -5,6 +5,7 @@ package Riak::Light;
 use 5.010;
 use Riak::Light::PBC;
 use Riak::Light::Driver;
+use MIME::Base64 qw(encode_base64);
 use Type::Params qw(compile);
 use Types::Standard -types;
 use English qw(-no_match_vars );
@@ -29,6 +30,11 @@ has timeout => ( is => 'ro', isa => Num,  default  => sub {0.5} );
 has tcp_nodelay => ( is => 'ro', isa => Bool,  default  => sub {1} );
 has in_timeout  => ( is => 'lazy', trigger => 1 );
 has out_timeout => ( is => 'lazy', trigger => 1 );
+has client_id => ( is => 'lazy', isa  => Str );
+ 
+sub _build_client_id {
+    "perl_riak_light" . encode_base64(int(rand(10737411824)), '');
+}
 
 sub _trigger_autodie {
   my ($self, $value) = @_;
@@ -107,12 +113,15 @@ const my $DEL      => 'del';
 const my $GET_KEYS => 'get_keys';
 const my $QUERY_INDEX => 'query_index';
 const my $MAP_REDUCE  => 'map_reduce';
+const my $SET_CLIENT_ID => 'set_client_id';
+const my $GET_CLIENT_ID => 'get_client_id';
 
 const my $ERROR_RESPONSE_CODE    => 0;
 const my $GET_RESPONSE_CODE      => 10;
 const my $GET_KEYS_RESPONSE_CODE => 18;
 const my $MAP_REDUCE_RESPONSE_CODE  => 24;
 const my $QUERY_INDEX_RESPONSE_CODE => 26;
+const my $GET_CLIENT_ID_RESPONSE_CODE => 4;
 
 const my $CODES => {
         $PING     => { request_code => 1,  response_code => 2 },
@@ -121,7 +130,9 @@ const my $CODES => {
         $DEL      => { request_code => 13, response_code => 14 },
         $GET_KEYS => { request_code => 17, response_code => 18 },
         $MAP_REDUCE => { request_code => 23, response_code => 24 },
-        $QUERY_INDEX => { request_code => 25, response_code => 26 },        
+        $QUERY_INDEX => { request_code => 25, response_code => 26 },
+        $GET_CLIENT_ID => { request_code => 3, response_code => 4},
+        $SET_CLIENT_ID => { request_code => 5, response_code => 6},
     };
 
 const my $DEFAULT_MAX_RESULTS => 100;
@@ -410,6 +421,29 @@ sub map_reduce_raw {
   );
 } 
 
+sub get_client_id {
+  my $self = shift;
+
+  $self->_parse_response(
+      operation => $GET_CLIENT_ID,
+      body      => q(),
+  ); 
+}
+
+sub set_client_id {
+    state $check = compile(Any, Str);
+    my ( $self, $client_id ) = $check->(@_);
+
+    my $body = RpbSetClientIdReq->encode(
+        { client_id => $client_id }
+    );
+
+    $self->_parse_response(
+        operation => $SET_CLIENT_ID,
+        body      => $body,
+    );
+}
+
 sub _parse_response {
     my ( $self, %args ) = @_;
     
@@ -470,6 +504,9 @@ sub _parse_response {
               $operation, $bucket, $key
           );
     
+        $response_code == $GET_CLIENT_ID_RESPONSE_CODE
+          and return $self->_process_get_client_id_response($response_body);
+
         # we have a 'get' response
         $response_code == $GET_RESPONSE_CODE
           and return $self->_process_get_response( $response_body, $bucket, $key, $decode );
@@ -523,6 +560,16 @@ sub _parse_response {
         return 1;
     }
 
+}
+
+sub _process_get_client_id_response {
+    my ( $self, $encoded_message ) = @_;  
+
+    $self->_process_generic_error( "Undefined Message", 'get client id', '-', '-' )
+      unless ( defined $encoded_message );
+
+    my $decoded_message = RpbGetClientIdResp->decode($encoded_message);
+    $decoded_message->client_id;  
 }
 
 sub _process_get_response {
@@ -742,18 +789,29 @@ requests to Riak over PBC interface.
 
 =head2 METHODS
 
-
 =head3 is_alive
 
   $client->is_alive() or warn "ops... something is wrong: $@";
 
 Perform a ping operation. Will return false in case of error (will store in $@).
 
-=head3 is_alive
+=head3 ping
 
   try { $client->ping() } catch { "oops... something is wrong: $_" };
 
 Perform a ping operation. Will die in case of error.
+
+=head3 set_client_id
+
+  $client->set_client_id('foobar');
+
+Set the client id.
+
+=head3 get_client_id
+
+  my $client_id = $client->get_client_id();
+
+Get the client id.
 
 =head3 get
 
