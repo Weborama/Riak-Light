@@ -128,5 +128,6 @@ Features
 * support raw data (ok)
 * support list keys (ok)
 * debug/trace mode (to do)
+* vclock support (in progress)
 * refactor to use Moo::Roles instead other objects (to do)
 * extract timeout provider to an external project (to do)
