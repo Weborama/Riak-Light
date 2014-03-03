@@ -214,14 +214,22 @@ sub get_all_indexes {
 sub get_index_value {
     state $check = compile(Any, Str, Str, Str);
     my ( $self, $bucket, $key, $index_name ) = $check->(@_);
+    
+    $self->get_all_index_values($bucket,$key)->{$index_name};
+}
 
-    my @values = map {
-      $_->{value}
-    } grep { 
-      $_->{key} eq $index_name 
-    } @{ $self->get_all_indexes($bucket, $key) };
+sub get_all_index_values {
+    state $check = compile(Any, Str, Str);
+    my ( $self, $bucket, $key) = $check->(@_);
+    
+    my %values;
+    foreach my $index (@{ $self->get_all_indexes($bucket, $key) }){
+      my $key = $index->{key};
+      $values{$key} //= [];
+      push @{ $values{$key} }, $index->{value};
+    }
 
-    shift @values
+    \%values
 }
 
 sub get_vclock {
@@ -871,9 +879,17 @@ IMPORT: this arrayref is unsortered.
 
 =head3 get_index_value
 
-Perform a fetch operation, will return the value of the index or undef.
+Perform a fetch operation, will return an arrayref with all values of the index or undef (if does not exists). There is no order for the array.
 
   my $value = $client->get_index_value(bucket => key => 'index_test_field_bin');
+
+It is similar to do
+
+  my $value = $client->get_all_index_values(bucket => 'key')->{index_test_field_bin};
+
+=head3 get_all_index_values
+
+Perform a fetch operation, will return an hashref with all 2i indexes names as keys, and arrayref of all values for values.
 
 =head3 get_vclock
 

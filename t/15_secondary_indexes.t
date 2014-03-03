@@ -100,9 +100,18 @@ subtest "query 2i" => sub {
           ], "querying all indexes from other_key$_"
         );
 
-        is $client->get_index_value($bucket_name => "key$_" => 'index_test_field_bin'), 
-         'plop', 
-          'should return the value of index_test_field_bin index (plop"';
+        is_deeply($client->get_index_value($bucket_name => "key$_" => 'index_test_field_bin'), 
+         ['plop'], 
+          'should return the value of index_test_field_bin index "plop"');
+          
+        my $data = $client->get_all_index_values($bucket_name => "key$_");
+        
+        $data->{index_test_field2_bin} = [ sort @{ $data->{index_test_field2_bin} } ];
+        
+        is_deeply $data, {
+          index_test_field_bin => ['plop'],
+          index_test_field2_bin => ['plop2', 'plop3']
+        }, 'should return two indexes';
     }
 
     foreach (1..50) {
