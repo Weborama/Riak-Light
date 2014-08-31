@@ -1,3 +1,6 @@
+0.10 2014-08-31 19:00:00 GMT
+  * fork safe capability (Tiago Peczenyj)
+
 0.09911 2014-03-03 14:42:00 GMT
    * fix get_index_value, add get_all_index_values (Tiago Peczenyj) 
 

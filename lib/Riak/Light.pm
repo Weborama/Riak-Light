@@ -20,6 +20,7 @@ use Moo;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
 
+has pid     => ( is => 'lazy', isa => Int, clearer => 1 );
 has port    => ( is => 'ro', isa => Int,  required => 1 );
 has host    => ( is => 'ro', isa => Str,  required => 1 );
 has r       => ( is => 'ro', isa => Int,  default  => sub {2} );
@@ -32,6 +33,10 @@ has in_timeout  => ( is => 'lazy', trigger => 1 );
 has out_timeout => ( is => 'lazy', trigger => 1 );
 has client_id => ( is => 'lazy', isa  => Str );
  
+sub _build_pid {
+  $$
+}
+
 sub _build_client_id {
     "perl_riak_light" . encode_base64(int(rand(10737411824)), '');
 }
@@ -63,7 +68,7 @@ has timeout_provider => (
     default => sub {'Riak::Light::Timeout::Select'}
 );
 
-has driver => ( is => 'lazy' );
+has driver => ( is => 'lazy', clearer => 1 );
 
 sub _build_driver {
     Riak::Light::Driver->new( socket => $_[0]->_build_socket() );
@@ -452,6 +457,10 @@ sub set_client_id {
     );
 }
 
+sub _pid_change {
+  $_[0]->pid != $$
+}
+
 sub _parse_response {
     my ( $self, %args ) = @_;
     
@@ -469,6 +478,11 @@ sub _parse_response {
     
     $self->autodie
       or undef $@;    ## no critic (RequireLocalizedPunctuationVars)
+
+    if ( $self->_pid_change ) {
+      $self->clear_pid;
+      $self->clear_driver;
+    }  
 
     $self->driver->perform_request(
         code => $request_code,
