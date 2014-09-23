@@ -22,6 +22,10 @@ subtest "new and default attrs values" => sub {
     is( $client->dw,      2,   "default dw should be 2" );
     ok( !$client->autodie,         "default autodie shoudl be false" );
     ok( $client->timeout_provider, 'Riak::Light::Timeout::Select' );
+
+    ok( !$client->has_rw, "should have no rw");
+    ok( !$client->has_pr, "should have no pr");
+    ok( !$client->has_pw, "should have no pw");
 };
 
 subtest "new and other attrs values" => sub {
@@ -37,6 +41,9 @@ subtest "new and other attrs values" => sub {
             driver           => undef,
             in_timeout       => 2,
             out_timeout      => 4,
+            rw               => 1,
+            pr               => 2,
+            pw               => 3,            
             timeout_provider => 'Riak::Light::Timeout::TimeOut'
         ],
         "a new client"
@@ -45,10 +52,13 @@ subtest "new and other attrs values" => sub {
     is( $client->r,       1,   "r  should be 1" );
     is( $client->w,       1,   "w  should be 1" );
     is( $client->dw,      1,   "dw should be 1" );
+    is( $client->rw,      1,   "rw should be 1" );
+    is( $client->pr,      2,   "pr should be 2" );
+    is( $client->pw,      3,   "pw should be 3" );    
     ok( $client->autodie,          "autodie should be true" );
     ok( $client->timeout_provider, 'Riak::Light::Timeout::TimeOut' );
-    is( $client->in_timeout,  2);
-    is( $client->out_timeout, 4);
+    is( $client->in_timeout,  2, "in timeout should be 2");
+    is( $client->out_timeout, 4, "out timeout should be 4");
 };
 
 subtest "should be a riak::light instance" => sub {
