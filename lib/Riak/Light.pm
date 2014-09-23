@@ -776,7 +776,7 @@ PR value setting for this client. Default not set ( and omit in the request)
 
 =head3 pw
 
-PW value setting for this client. Default not set ( and omit in the request)
+PW value setting for this client. Default not set ( and omit in the request)    
 
 =head3 autodie
 
