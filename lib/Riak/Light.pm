@@ -20,7 +20,7 @@ use Moo;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
 
-has pid     => ( is => 'lazy', isa => Int, clearer => 1 );
+has pid     => ( is => 'lazy', isa => Int, clearer => 1, predicate => 1 );
 has port    => ( is => 'ro', isa => Int,  required => 1 );
 has host    => ( is => 'ro', isa => Str,  required => 1 );
 has r       => ( is => 'ro', isa => Int,  default  => sub {2} );
@@ -81,6 +81,8 @@ sub _build_driver {
 
 sub _build_socket {
     my ($self) = @_;
+
+    $self->pid; # force associate the pid with the current socket 
 
     my $host = $self->host;
     my $port = $self->port;
