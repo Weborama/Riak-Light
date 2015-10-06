@@ -1,3 +1,6 @@
+0.12 2015-09-06 12:00:00 GMT
+  * fix pid creation ( force lazy creation ) (Tiago Peczenyj)
+
 0.11 2014-09-23 12:00:00 GMT
   * send extra parameter r,w, dw, pr, pw, rw in all requests, if necessary (Tiago Peczenyj)
 
