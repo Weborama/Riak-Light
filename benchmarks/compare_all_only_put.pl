@@ -22,13 +22,14 @@ die "please set the RIAK_REST_HOST variable" unless $ENV{RIAK_REST_HOST};
 
 my ( $host_pbc, $port_pbc ) = split ':', $ENV{RIAK_PBC_HOST};
 my $http_host = $ENV{RIAK_REST_HOST};
-my $hash = { baz => 1024, boom => [ 1, 2, 3, 4, 5, 1000, rand(1024) ] };
+my $hash      = { baz => 1024, boom => [ 1, 2, 3, 4, 5, 1000, rand(1024) ] };
 
 #clients
 
-my $riak_light_client1 =
-  Riak::Light->new( host => $host_pbc, port => $port_pbc,
-    timeout_provider => undef );
+my $riak_light_client1 = Riak::Light->new(
+    host             => $host_pbc, port => $port_pbc,
+    timeout_provider => undef
+);
 
 $riak_light_client1->put( foo_riak_light1 => key => $hash );
 

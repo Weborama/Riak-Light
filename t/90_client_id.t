@@ -18,6 +18,6 @@ my $client = Riak::Light->new(
     timeout_provider => undef
 );
 
-is $client->set_client_id('ID'), 1, 'can set' ;
+is $client->set_client_id('ID'), 1, 'can set';
 
 is $client->get_client_id, 'ID', 'should return the client id';

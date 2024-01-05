@@ -49,7 +49,7 @@ sub create_server_with_timeout {
 }
 
 sub test_timeout {
-    my $provider = shift;
+    my $provider      = shift;
     my $provider_name = $provider // "undef";
 
     subtest

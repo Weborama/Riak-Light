@@ -16,26 +16,27 @@ with 'Riak::Light::Timeout';
 # ABSTRACT: proxy to read/write using IO::Select as a timeout provider only for READ operations.
 
 has socket      => ( is => 'ro', required => 1 );
-has in_timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
-has out_timeout => ( is => 'ro', isa      => Num, default => sub {0.5} );
+has in_timeout  => ( is => 'ro', isa      => Num,  default => sub {0.5} );
+has out_timeout => ( is => 'ro', isa      => Num,  default => sub {0.5} );
 has is_valid    => ( is => 'rw', isa      => Bool, default => sub {1} );
 
 sub BUILD {
+
     # carp "This Timeout Provider is EXPERIMENTAL!";
 
     croak "NetBSD no supported yet"
       if is_netbsd();
     ## TODO: see https://metacpan.org/source/ZWON/RedisDB-2.12/lib/RedisDB.pm#L235
-      
+
     croak "Solaris is not supported"
       if is_solaris();
-    
+
     $_[0]->_set_so_rcvtimeo();
     $_[0]->_set_so_sndtimeo();
 }
 
 sub _set_so_rcvtimeo {
-    my ($self) = @_;
+    my ($self)   = @_;
     my $seconds  = int( $self->in_timeout );
     my $useconds = int( 1_000_000 * ( $self->in_timeout - $seconds ) );
     my $timeout  = pack( 'l!l!', $seconds, $useconds );
@@ -45,7 +46,7 @@ sub _set_so_rcvtimeo {
 }
 
 sub _set_so_sndtimeo {
-    my ($self) = @_;
+    my ($self)   = @_;
     my $seconds  = int( $self->out_timeout );
     my $useconds = int( 1_000_000 * ( $self->out_timeout - $seconds ) );
     my $timeout  = pack( 'l!l!', $seconds, $useconds );
@@ -57,7 +58,7 @@ sub _set_so_sndtimeo {
 sub clean {
     $_[0]->socket->close();
     $_[0]->is_valid(0);
-    $! = ETIMEDOUT;         ## no critic (RequireLocalizedPunctuationVars)
+    $! = ETIMEDOUT;    ## no critic (RequireLocalizedPunctuationVars)
 }
 
 sub sysread {

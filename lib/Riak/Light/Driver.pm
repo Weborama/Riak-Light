@@ -35,7 +35,7 @@ sub perform_request {
 }
 
 sub read_response {
-    my ($self)   = @_;
+    my ($self) = @_;
     my $response = $self->connector->read_response()
       or return $self->_parse_error();
     $self->_parse_response($response);
@@ -43,7 +43,7 @@ sub read_response {
 
 sub _parse_response {
     my ( $self, $response ) = @_;
-    my ( $code, $body ) = unpack( 'c a*', $response );
+    my ( $code, $body )     = unpack( 'c a*', $response );
 
     { code => $code, body => $body, error => undef };
 }

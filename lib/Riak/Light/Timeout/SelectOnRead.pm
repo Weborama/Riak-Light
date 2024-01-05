@@ -17,9 +17,10 @@ with 'Riak::Light::Timeout';
 has socket      => ( is => 'ro', required => 1 );
 has in_timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
 has out_timeout => ( is => 'ro', isa      => Num, default => sub {0.5} );
-has select => ( is => 'ro', default => sub { IO::Select->new } );
+has select      => ( is => 'ro', default  => sub { IO::Select->new } );
 
 sub BUILD {
+
     #carp "Should block in Write Operations, be careful";
 
     $_[0]->select->add( $_[0]->socket );
@@ -59,6 +60,7 @@ sub syswrite {
 
 1;
 
+__END__
 =head1 NAME
 
   Riak::Light::Timeout::SelectOnRead -IO Timeout based on IO::Select (only in read operations) for Riak::Light

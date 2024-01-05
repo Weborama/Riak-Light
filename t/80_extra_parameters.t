@@ -35,23 +35,24 @@ subtest "fetch" => sub {
             driver => $mock
         );
 
-		$client->get( foo => "bar" );
+        $client->get( foo => "bar" );
 
-		my ($name, $args) = $mock->next_call;
+        my ( $name, $args ) = $mock->next_call;
 
-		my %params;
+        my %params;
 
-		( undef, %params )= @$args;
-		my $request = RpbGetReq->decode($params{body});
+        ( undef, %params ) = @$args;
+        my $request = RpbGetReq->decode( $params{body} );
 
-		is $name, "perform_request", 'should call perform_request';
-		is $request->r, 2 ,          'should create the request with r = 2';
-		is $request->bucket, "foo",  'should create the request with bucket = foo';
-		is $request->key, "bar",     'should create the request with key = bar';
-		ok !$request->pr,            'pr should not be used';
+        is $name,       "perform_request", 'should call perform_request';
+        is $request->r, 2, 'should create the request with r = 2';
+        is $request->bucket, "foo",
+          'should create the request with bucket = foo';
+        is $request->key, "bar", 'should create the request with key = bar';
+        ok !$request->pr, 'pr should not be used';
     };
 
-	subtest "fetch simple value with extra parameters" => sub {
+    subtest "fetch simple value with extra parameters" => sub {
         plan tests => 5;
         my $mock = Test::MockObject->new;
 
@@ -77,27 +78,28 @@ subtest "fetch" => sub {
             driver => $mock
         );
 
-		$client->get( foo => "bar" );
+        $client->get( foo => "bar" );
 
-		my ($name, $args) = $mock->next_call;
+        my ( $name, $args ) = $mock->next_call;
 
-		my %params;
+        my %params;
 
-		( undef, %params )= @$args;
-		my $request = RpbGetReq->decode($params{body});
+        ( undef, %params ) = @$args;
+        my $request = RpbGetReq->decode( $params{body} );
 
-		is $name, "perform_request", 'should call perform_request';
-		is $request->r, 2 ,          'should create the request with r = 2';
-		is $request->bucket, "foo",  'should create the request with bucket = foo';
-		is $request->key, "bar",     'should create the request with key = bar';
-		is $request->pr, 3,          'should create the request with pr = 3';		
-    };    
+        is $name,       "perform_request", 'should call perform_request';
+        is $request->r, 2, 'should create the request with r = 2';
+        is $request->bucket, "foo",
+          'should create the request with bucket = foo';
+        is $request->key, "bar", 'should create the request with key = bar';
+        is $request->pr,  3,     'should create the request with pr = 3';
+    };
 };
 
 subtest "store" => sub {
-	plan tests => 2;
+    plan tests => 2;
 
-	subtest "store simple data " => sub {
+    subtest "store simple data " => sub {
         plan tests => 8;
         my $mock = Test::MockObject->new;
 
@@ -115,27 +117,29 @@ subtest "store" => sub {
             driver => $mock
         );
 
-		$client->put_raw( foo => "bar", "1" );
+        $client->put_raw( foo => "bar", "1" );
 
-		my ($name, $args) = $mock->next_call;
+        my ( $name, $args ) = $mock->next_call;
 
-		my %params;
+        my %params;
 
-		( undef, %params )= @$args;
-		my $request = RpbPutReq->decode($params{body});
+        ( undef, %params ) = @$args;
+        my $request = RpbPutReq->decode( $params{body} );
 
-		is $name, "perform_request", 'should call perform_request';	
-		is $request->w, 2 ,          'should create the request with w = 2';
-		is $request->bucket, "foo",  'should create the request with bucket = foo';
-		is $request->key, "bar",     'should create the request with key = bar';
-		is $request->dw, 2,          'should create the request with dw = 2';
-		ok !$request->pw,            'should has no pw';
-		is $request->content->content_type, "plain/text", "content_type should be plain/text";
-		is $request->content->value, "1", "value should be 1";
+        is $name,       "perform_request", 'should call perform_request';
+        is $request->w, 2, 'should create the request with w = 2';
+        is $request->bucket, "foo",
+          'should create the request with bucket = foo';
+        is $request->key, "bar", 'should create the request with key = bar';
+        is $request->dw,  2,     'should create the request with dw = 2';
+        ok !$request->pw, 'should has no pw';
+        is $request->content->content_type, "plain/text",
+          "content_type should be plain/text";
+        is $request->content->value, "1", "value should be 1";
     };
 
 
-	subtest "store simple data with extra parameters" => sub {
+    subtest "store simple data with extra parameters" => sub {
         plan tests => 8;
         my $mock = Test::MockObject->new;
 
@@ -153,28 +157,30 @@ subtest "store" => sub {
             driver => $mock
         );
 
-		$client->put_raw( foo => "bar", "1" );
+        $client->put_raw( foo => "bar", "1" );
 
-		my ($name, $args) = $mock->next_call;
+        my ( $name, $args ) = $mock->next_call;
 
-		my %params;
+        my %params;
 
-		( undef, %params )= @$args;
-		my $request = RpbPutReq->decode($params{body});
+        ( undef, %params ) = @$args;
+        my $request = RpbPutReq->decode( $params{body} );
 
-		is $name, "perform_request", 'should call perform_request';	
-		is $request->w, 2 ,          'should create the request with w = 2';
-		is $request->bucket, "foo",  'should create the request with bucket = foo';
-		is $request->key, "bar",     'should create the request with key = bar';
-		is $request->dw, 2,          'should create the request with dw = 2';
-		is $request->pw, 1,          'should create the request with pw = 1';  
-		is $request->content->content_type, "plain/text", "content_type should be plain/text";
-		is $request->content->value, "1", "value should be 1";
+        is $name,       "perform_request", 'should call perform_request';
+        is $request->w, 2, 'should create the request with w = 2';
+        is $request->bucket, "foo",
+          'should create the request with bucket = foo';
+        is $request->key, "bar", 'should create the request with key = bar';
+        is $request->dw,  2,     'should create the request with dw = 2';
+        is $request->pw,  1,     'should create the request with pw = 1';
+        is $request->content->content_type, "plain/text",
+          "content_type should be plain/text";
+        is $request->content->value, "1", "value should be 1";
     };
 };
 
 subtest "delete" => sub {
-	plan tests => 2;
+    plan tests => 2;
 
     subtest "del simple data " => sub {
         plan tests => 9;
@@ -196,24 +202,25 @@ subtest "delete" => sub {
 
         $client->del( foo => "bar" );
 
-        my ($name, $args) = $mock->next_call;
+        my ( $name, $args ) = $mock->next_call;
 
-		my %params;
+        my %params;
 
-		( undef, %params )= @$args;
-		my $request = RpbDelReq->decode($params{body});
+        ( undef, %params ) = @$args;
+        my $request = RpbDelReq->decode( $params{body} );
 
-		is $name, "perform_request", 'should call perform_request';	
-		is $request->w, 2 ,          'should create the request with w = 2';
-		is $request->r, 2 ,          'should create the request with r = 2';
-		is $request->dw, 2,          'should create the request with dw = 2';
-		
-		is $request->bucket, "foo",  'should create the request with bucket = foo';
-		is $request->key, "bar",     'should create the request with key = bar';
+        is $name,        "perform_request", 'should call perform_request';
+        is $request->w,  2, 'should create the request with w = 2';
+        is $request->r,  2, 'should create the request with r = 2';
+        is $request->dw, 2, 'should create the request with dw = 2';
 
-		ok !$request->rw,            'should has no rw';
-		ok !$request->pr,            'should has no pr';
-		ok !$request->pw,            'should has no pw';		
+        is $request->bucket, "foo",
+          'should create the request with bucket = foo';
+        is $request->key, "bar", 'should create the request with key = bar';
+
+        ok !$request->rw, 'should has no rw';
+        ok !$request->pr, 'should has no pr';
+        ok !$request->pw, 'should has no pw';
     };
 
     subtest "del simple data with extra parameters" => sub {
@@ -231,30 +238,31 @@ subtest "delete" => sub {
 
         my $client = Riak::Light->new(
             host   => 'host', port => 1234, autodie => 1,
-            rw => 1, pr => 2, pw => 3,
+            rw     => 1,      pr   => 2,    pw      => 3,
             driver => $mock
         );
 
         $client->del( foo => "bar" );
 
-        my ($name, $args) = $mock->next_call;
+        my ( $name, $args ) = $mock->next_call;
 
-		my %params;
+        my %params;
 
-		( undef, %params )= @$args;
-		my $request = RpbDelReq->decode($params{body});
+        ( undef, %params ) = @$args;
+        my $request = RpbDelReq->decode( $params{body} );
 
-		is $name, "perform_request", 'should call perform_request';	
-		is $request->w, 2 ,          'should create the request with w = 2';
-		is $request->r, 2 ,          'should create the request with r = 2';
-		is $request->dw, 2,          'should create the request with dw = 2';
-		
-		is $request->bucket, "foo",  'should create the request with bucket = foo';
-		is $request->key, "bar",     'should create the request with key = bar';
+        is $name,        "perform_request", 'should call perform_request';
+        is $request->w,  2, 'should create the request with w = 2';
+        is $request->r,  2, 'should create the request with r = 2';
+        is $request->dw, 2, 'should create the request with dw = 2';
 
-		is $request->rw, 1,          'should create the request with rw = 1';
-		is $request->pr, 2,          'should create the request with pr = 2';
-		is $request->pw, 3,          'should create the request with pw = 3';		
+        is $request->bucket, "foo",
+          'should create the request with bucket = foo';
+        is $request->key, "bar", 'should create the request with key = bar';
+
+        is $request->rw, 1, 'should create the request with rw = 1';
+        is $request->pr, 2, 'should create the request with pr = 2';
+        is $request->pw, 3, 'should create the request with pw = 3';
     };
 
 };

@@ -8,7 +8,7 @@ use Riak::Light::Driver;
 use MIME::Base64 qw(encode_base64);
 use Type::Params qw(compile);
 use Types::Standard -types;
-use English qw(-no_match_vars );
+use English      qw(-no_match_vars );
 use Scalar::Util qw(blessed);
 use IO::Socket;
 use Socket qw(TCP_NODELAY IPPROTO_TCP);
@@ -20,43 +20,45 @@ use Moo;
 
 # ABSTRACT: Fast and lightweight Perl client for Riak
 
-has pid     => ( is => 'lazy', isa => Int, clearer => 1, predicate => 1 );
-has port    => ( is => 'ro', isa => Int,  required => 1 );
-has host    => ( is => 'ro', isa => Str,  required => 1 );
-has r       => ( is => 'ro', isa => Int,  default  => sub {2} );
-has w       => ( is => 'ro', isa => Int,  default  => sub {2} );
-has dw      => ( is => 'ro', isa => Int,  default  => sub {2} );
+has pid  => ( is => 'lazy', isa => Int, clearer  => 1, predicate => 1 );
+has port => ( is => 'ro',   isa => Int, required => 1 );
+has host => ( is => 'ro',   isa => Str, required => 1 );
+has r    => ( is => 'ro',   isa => Int, default  => sub {2} );
+has w    => ( is => 'ro',   isa => Int, default  => sub {2} );
+has dw   => ( is => 'ro',   isa => Int, default  => sub {2} );
 
-has pr => ( is => 'ro', isa => Int, predicate => 1);
-has pw => ( is => 'ro', isa => Int, predicate => 1);
-has rw => ( is => 'ro', isa => Int, predicate => 1);
+has pr => ( is => 'ro', isa => Int, predicate => 1 );
+has pw => ( is => 'ro', isa => Int, predicate => 1 );
+has rw => ( is => 'ro', isa => Int, predicate => 1 );
 
-has autodie => ( is => 'ro', isa => Bool, default  => sub {1}, trigger => 1 );
-has timeout => ( is => 'ro', isa => Num,  default  => sub {0.5} );
-has tcp_nodelay => ( is => 'ro', isa => Bool,  default  => sub {1} );
+has autodie => ( is => 'ro', isa => Bool, default => sub {1}, trigger => 1 );
+has timeout     => ( is => 'ro',   isa     => Num,  default => sub {0.5} );
+has tcp_nodelay => ( is => 'ro',   isa     => Bool, default => sub {1} );
 has in_timeout  => ( is => 'lazy', trigger => 1 );
 has out_timeout => ( is => 'lazy', trigger => 1 );
-has client_id => ( is => 'lazy', isa  => Str );
- 
+has client_id   => ( is => 'lazy', isa     => Str );
+
 sub _build_pid {
-  $$
+    $$;
 }
 
 sub _build_client_id {
-    "perl_riak_light" . encode_base64(int(rand(10737411824)), '');
+    "perl_riak_light" . encode_base64( int( rand(10737411824) ), '' );
 }
 
 sub _trigger_autodie {
-  my ($self, $value) = @_;
-  carp "autodie will be disable in the next version" unless $value;
+    my ( $self, $value ) = @_;
+    carp "autodie will be disable in the next version" unless $value;
 }
 
 sub _trigger_in_timeout {
-  carp "this feature will be disabled in the next version, you should use just timeout instead";
+    carp
+      "this feature will be disabled in the next version, you should use just timeout instead";
 }
 
 sub _trigger_out_timeout {
-  carp "this feature will be disabled in the next version, you should use just timeout instead";
+    carp
+      "this feature will be disabled in the next version, you should use just timeout instead";
 }
 
 sub _build_in_timeout {
@@ -68,8 +70,8 @@ sub _build_out_timeout {
 }
 
 has timeout_provider => (
-    is => 'ro',
-    isa => Maybe [Str],
+    is      => 'ro',
+    isa     => Maybe [Str],
     default => sub {'Riak::Light::Timeout::Select'}
 );
 
@@ -82,7 +84,7 @@ sub _build_driver {
 sub _build_socket {
     my ($self) = @_;
 
-    $self->pid; # force associate the pid with the current socket 
+    $self->pid;    # force associate the pid with the current socket
 
     my $host = $self->host;
     my $port = $self->port;
@@ -96,13 +98,13 @@ sub _build_socket {
     croak "Error ($!), can't connect to $host:$port"
       unless defined $socket;
 
-    if($self->tcp_nodelay){
-      $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1) 
-        or croak "Cannot set tcp nodelay $! ($^E)";
+    if ( $self->tcp_nodelay ) {
+        $socket->setsockopt( IPPROTO_TCP, TCP_NODELAY, 1 )
+          or croak "Cannot set tcp nodelay $! ($^E)";
     }
-    
+
     return $socket unless defined $self->timeout_provider;
-    
+
     use Module::Load qw(load);
     load $self->timeout_provider;
 
@@ -118,34 +120,34 @@ sub BUILD {
     $_[0]->driver;
 }
 
-const my $PING     => 'ping';
-const my $GET      => 'get';
-const my $PUT      => 'put';
-const my $DEL      => 'del';
-const my $GET_KEYS => 'get_keys';
-const my $QUERY_INDEX => 'query_index';
-const my $MAP_REDUCE  => 'map_reduce';
+const my $PING          => 'ping';
+const my $GET           => 'get';
+const my $PUT           => 'put';
+const my $DEL           => 'del';
+const my $GET_KEYS      => 'get_keys';
+const my $QUERY_INDEX   => 'query_index';
+const my $MAP_REDUCE    => 'map_reduce';
 const my $SET_CLIENT_ID => 'set_client_id';
 const my $GET_CLIENT_ID => 'get_client_id';
 
-const my $ERROR_RESPONSE_CODE    => 0;
-const my $GET_RESPONSE_CODE      => 10;
-const my $GET_KEYS_RESPONSE_CODE => 18;
-const my $MAP_REDUCE_RESPONSE_CODE  => 24;
-const my $QUERY_INDEX_RESPONSE_CODE => 26;
+const my $ERROR_RESPONSE_CODE         => 0;
+const my $GET_RESPONSE_CODE           => 10;
+const my $GET_KEYS_RESPONSE_CODE      => 18;
+const my $MAP_REDUCE_RESPONSE_CODE    => 24;
+const my $QUERY_INDEX_RESPONSE_CODE   => 26;
 const my $GET_CLIENT_ID_RESPONSE_CODE => 4;
 
 const my $CODES => {
-        $PING     => { request_code => 1,  response_code => 2 },
-        $GET      => { request_code => 9,  response_code => 10 },
-        $PUT      => { request_code => 11, response_code => 12 },
-        $DEL      => { request_code => 13, response_code => 14 },
-        $GET_KEYS => { request_code => 17, response_code => 18 },
-        $MAP_REDUCE => { request_code => 23, response_code => 24 },
-        $QUERY_INDEX => { request_code => 25, response_code => 26 },
-        $GET_CLIENT_ID => { request_code => 3, response_code => 4},
-        $SET_CLIENT_ID => { request_code => 5, response_code => 6},
-    };
+    $PING          => { request_code => 1,  response_code => 2 },
+    $GET           => { request_code => 9,  response_code => 10 },
+    $PUT           => { request_code => 11, response_code => 12 },
+    $DEL           => { request_code => 13, response_code => 14 },
+    $GET_KEYS      => { request_code => 17, response_code => 18 },
+    $MAP_REDUCE    => { request_code => 23, response_code => 24 },
+    $QUERY_INDEX   => { request_code => 25, response_code => 26 },
+    $GET_CLIENT_ID => { request_code => 3,  response_code => 4 },
+    $SET_CLIENT_ID => { request_code => 5,  response_code => 6 },
+};
 
 const my $DEFAULT_MAX_RESULTS => 100;
 
@@ -161,7 +163,7 @@ sub is_alive {
 }
 
 sub get_keys {
-    state $check = compile(Any, Str, Optional[CodeRef]);
+    state $check = compile( Any, Str, Optional [CodeRef] );
     my ( $self, $bucket, $callback ) = $check->(@_);
 
     my $body = RpbListKeysReq->encode( { bucket => $bucket } );
@@ -170,90 +172,89 @@ sub get_keys {
         bucket    => $bucket,
         operation => $GET_KEYS,
         body      => $body,
-        callback => $callback,
+        callback  => $callback,
     );
 }
 
 sub get_raw {
-    state $check = compile(Any, Str, Str, Optional[Bool]);
-    my ( $self, $bucket, $key, $return_all) = $check->(@_);
+    state $check = compile( Any, Str, Str, Optional [Bool] );
+    my ( $self, $bucket, $key, $return_all ) = $check->(@_);
     my $response = $self->_fetch( $bucket, $key, 0 );
-    
+
     my $result;
-    if(defined $response) {
-      $result = ($return_all)? $response : $response->{value};
+    if ( defined $response ) {
+        $result = ($return_all) ? $response : $response->{value};
     }
-    $result
+    $result;
 }
 
 sub get_full_raw {
-    state $check = compile(Any, Str, Str);
-    my ( $self, $bucket, $key) = $check->(@_);
-    
-    $self->get_raw($bucket, $key, 1)
+    state $check = compile( Any, Str, Str );
+    my ( $self, $bucket, $key ) = $check->(@_);
+
+    $self->get_raw( $bucket, $key, 1 );
 }
 
 sub get {
-    state $check = compile(Any, Str, Str, Optional[Bool]);
-    my ( $self, $bucket, $key, $return_all) = $check->(@_);
+    state $check = compile( Any, Str, Str, Optional [Bool] );
+    my ( $self, $bucket, $key, $return_all ) = $check->(@_);
     my $response = $self->_fetch( $bucket, $key, 1 );
     my $result;
-    if(defined $response) {
-      $result = ($return_all)? $response : $response->{value};
+    if ( defined $response ) {
+        $result = ($return_all) ? $response : $response->{value};
     }
-    $result
+    $result;
 }
 
 sub get_full {
-    state $check = compile(Any, Str, Str);
-    my ( $self, $bucket, $key) = $check->(@_);
+    state $check = compile( Any, Str, Str );
+    my ( $self, $bucket, $key ) = $check->(@_);
 
-    $self->get($bucket, $key, 1)
+    $self->get( $bucket, $key, 1 );
 }
 
 sub get_all_indexes {
-    state $check = compile(Any, Str, Str);
+    state $check = compile( Any, Str, Str );
     my ( $self, $bucket, $key ) = $check->(@_);
-    my $response = $self->_fetch( $bucket, $key, 0, 1);
-    
-    return (! defined $response ) ? [] : [
-      map { 
-        +{ value => $_->value, key => $_->key } 
-      } @{ $response->{indexes} // [] }
-    ];
+    my $response = $self->_fetch( $bucket, $key, 0, 1 );
+
+    return ( !defined $response )
+      ? []
+      : [ map { +{ value => $_->value, key => $_->key } }
+          @{ $response->{indexes} // [] } ];
 }
 
 sub get_index_value {
-    state $check = compile(Any, Str, Str, Str);
+    state $check = compile( Any, Str, Str, Str );
     my ( $self, $bucket, $key, $index_name ) = $check->(@_);
-    
-    $self->get_all_index_values($bucket,$key)->{$index_name};
+
+    $self->get_all_index_values( $bucket, $key )->{$index_name};
 }
 
 sub get_all_index_values {
-    state $check = compile(Any, Str, Str);
-    my ( $self, $bucket, $key) = $check->(@_);
-    
+    state $check = compile( Any, Str, Str );
+    my ( $self, $bucket, $key ) = $check->(@_);
+
     my %values;
-    foreach my $index (@{ $self->get_all_indexes($bucket, $key) }){
-      my $key = $index->{key};
-      $values{$key} //= [];
-      push @{ $values{$key} }, $index->{value};
+    foreach my $index ( @{ $self->get_all_indexes( $bucket, $key ) } ) {
+        my $key = $index->{key};
+        $values{$key} //= [];
+        push @{ $values{$key} }, $index->{value};
     }
 
-    \%values
+    \%values;
 }
 
 sub get_vclock {
-    state $check = compile(Any, Str, Str);
+    state $check = compile( Any, Str, Str );
     my ( $self, $bucket, $key ) = $check->(@_);
-    my $response = $self->_fetch( $bucket, $key, 0, 1);
-    
+    my $response = $self->_fetch( $bucket, $key, 0, 1 );
+
     defined $response and $response->{vclock};
 }
 
 sub exists {
-    state $check = compile(Any, Str, Str);
+    state $check = compile( Any, Str, Str );
     my ( $self, $bucket, $key ) = $check->(@_);
     defined $self->_fetch( $bucket, $key, 0, 1 );
 }
@@ -283,31 +284,40 @@ sub _fetch {
 }
 
 sub put_raw {
-    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str|ArrayRef[Str]]], Optional[Str]);
-    my ( $self, $bucket, $key, $value, $content_type, $indexes, $vclock ) = $check->(@_);
+    state $check = compile(
+        Any, Str, Str, Any, Optional [Str],
+        Optional [ HashRef [ Str | ArrayRef [Str] ] ], Optional [Str]
+    );
+    my ( $self, $bucket, $key, $value, $content_type, $indexes, $vclock ) =
+      $check->(@_);
     $content_type ||= 'plain/text';
-    $self->_store( $bucket, $key, $value, $content_type, $indexes, $vclock);
+    $self->_store( $bucket, $key, $value, $content_type, $indexes, $vclock );
 }
 
 sub put {
-    state $check = compile(Any, Str, Str, Any, Optional[Str], Optional[HashRef[Str|ArrayRef[Str]]], Optional[Str]);
-    my ( $self, $bucket, $key, $value, $content_type, $indexes, $vclock ) = $check->(@_);
+    state $check = compile(
+        Any, Str, Str, Any, Optional [Str],
+        Optional [ HashRef [ Str | ArrayRef [Str] ] ], Optional [Str]
+    );
+    my ( $self, $bucket, $key, $value, $content_type, $indexes, $vclock ) =
+      $check->(@_);
 
-    ($content_type ||= 'application/json')
-      eq 'application/json'
-        and $value = encode_json($value);
+    ( $content_type ||= 'application/json' ) eq 'application/json'
+      and $value = encode_json($value);
 
-    $self->_store( $bucket, $key, $value, $content_type, $indexes, $vclock);
+    $self->_store( $bucket, $key, $value, $content_type, $indexes, $vclock );
 }
 
 sub _store {
-    my ( $self, $bucket, $key, $encoded_value, $content_type, $indexes, $vclock ) = @_;
+    my ($self, $bucket, $key, $encoded_value, $content_type, $indexes,
+        $vclock
+    ) = @_;
 
     my %extra_parameters = ();
 
     $extra_parameters{vclock} = $vclock if $vclock;
-    $extra_parameters{dw} = $self->dw;
-    $extra_parameters{pw} = $self->pw if $self->has_pw;
+    $extra_parameters{dw}     = $self->dw;
+    $extra_parameters{pw}     = $self->pw if $self->has_pw;
 
     my $body = RpbPutReq->encode(
         {   key     => $key,
@@ -315,17 +325,19 @@ sub _store {
             content => {
                 value        => $encoded_value,
                 content_type => $content_type,
-                ( $indexes ?
-                  (indexes => [
-                              map {
-                                  my $k = $_;
-                                  my $v = $indexes->{$_};
-                                  ref $v eq 'ARRAY'
-                                    ? map { { key => $k , value => $_ }; } @$v
-                                    : { key => $k , value => $v };
-                              } keys %$indexes
-                             ])
-                  : () ),
+                (   $indexes
+                    ? ( indexes => [
+                            map {
+                                my $k = $_;
+                                my $v = $indexes->{$_};
+                                ref $v eq 'ARRAY'
+                                  ? map { { key => $k, value => $_ }; } @$v
+                                  : { key => $k, value => $v };
+                            } keys %$indexes
+                        ]
+                      )
+                    : ()
+                ),
             },
             w => $self->w,
             %extra_parameters,
@@ -341,7 +353,7 @@ sub _store {
 }
 
 sub del {
-    state $check = compile(Any, Str, Str);
+    state $check = compile( Any, Str, Str );
     my ( $self, $bucket, $key ) = $check->(@_);
 
     my %extra_parameters;
@@ -369,110 +381,118 @@ sub del {
 }
 
 sub query_index_loop {
-  state $check = compile(Any, Str, Str, Str|ArrayRef, Optional[HashRef]);
-     my ( $self, $bucket, $index, $value_to_match, $extra_parameters ) = $check->(@_);
+    state $check =
+      compile( Any, Str, Str, Str | ArrayRef, Optional [HashRef] );
+    my ( $self, $bucket, $index, $value_to_match, $extra_parameters ) =
+      $check->(@_);
 
-  $extra_parameters //= {};   
-  $extra_parameters->{max_results} //= $DEFAULT_MAX_RESULTS;
-  
-  my @keys;
-  do {
-    
-    my ($temp_keys, $continuation, undef) = $self->query_index($bucket, $index, $value_to_match, $extra_parameters);
-    
-    $extra_parameters->{continuation} = $continuation;
+    $extra_parameters //= {};
+    $extra_parameters->{max_results} //= $DEFAULT_MAX_RESULTS;
 
-    push @keys, @{$temp_keys};
+    my @keys;
+    do {
 
-  } while(defined $extra_parameters->{continuation});
+        my ( $temp_keys, $continuation, undef ) = $self->query_index(
+            $bucket, $index, $value_to_match,
+            $extra_parameters
+        );
 
-  return \@keys;
+        $extra_parameters->{continuation} = $continuation;
+
+        push @keys, @{$temp_keys};
+
+    } while ( defined $extra_parameters->{continuation} );
+
+    return \@keys;
 }
 
 sub query_index {
-     state $check = compile(Any, Str, Str, Str|ArrayRef, Optional[HashRef]);
-     my ( $self, $bucket, $index, $value_to_match, $extra_parameters ) = $check->(@_);
+    state $check =
+      compile( Any, Str, Str, Str | ArrayRef, Optional [HashRef] );
+    my ( $self, $bucket, $index, $value_to_match, $extra_parameters ) =
+      $check->(@_);
 
-     my $query_type = 0; # eq
-     ref $value_to_match
-       and $query_type = 1; # range
+    my $query_type = 0;    # eq
+    ref $value_to_match
+      and $query_type = 1;    # range
 
-     croak "query index in stream mode not supported"
+    croak "query index in stream mode not supported"
       if defined $extra_parameters && $extra_parameters->{stream};
 
-     my $body = RpbIndexReq->encode(
-         {   index    => $index,
-             bucket   => $bucket,
-             qtype    => $query_type,
-             $query_type ?
-             ( range_min => $value_to_match->[0],
-               range_max => $value_to_match->[1] )
-             : (key => $value_to_match ),
-             %{$extra_parameters // {}},
-         }
-     );
+    my $body = RpbIndexReq->encode(
+        {   index  => $index,
+            bucket => $bucket,
+            qtype  => $query_type,
+            $query_type
+            ? ( range_min => $value_to_match->[0],
+                range_max => $value_to_match->[1]
+              )
+            : ( key => $value_to_match ),
+            %{ $extra_parameters // {} },
+        }
+    );
 
-     $self->_parse_response(
-         $query_type ?
-           (key => "2i query on index='$index' => " . $value_to_match->[0] . '...' . $value_to_match->[1])
-         : (key => "2i query on index='$index' => " . $value_to_match ),
-         bucket    => $bucket,
-         operation => $QUERY_INDEX,
-         body      => $body,
-         paginate  => defined $extra_parameters && exists $extra_parameters->{max_results},
-     );
- }
- 
+    $self->_parse_response(
+        $query_type
+        ? ( key => "2i query on index='$index' => "
+              . $value_to_match->[0] . '...'
+              . $value_to_match->[1] )
+        : ( key => "2i query on index='$index' => " . $value_to_match ),
+        bucket    => $bucket,
+        operation => $QUERY_INDEX,
+        body      => $body,
+        paginate  => defined $extra_parameters
+          && exists $extra_parameters->{max_results},
+    );
+}
+
 sub map_reduce {
-  state $check = compile(Any, Any, Optional[CodeRef]);
-  my ( $self, $request, $callback) = $check->(@_); 
+    state $check = compile( Any, Any, Optional [CodeRef] );
+    my ( $self, $request, $callback ) = $check->(@_);
 
-  my @args;
-  
-  push @args, ref($request) ? encode_json($request): $request;
-  push @args, 'application/json';
-  push @args, $callback if $callback;
-  
-  $self->map_reduce_raw(@args);
-} 
+    my @args;
+
+    push @args, ref($request) ? encode_json($request) : $request;
+    push @args, 'application/json';
+    push @args, $callback if $callback;
+
+    $self->map_reduce_raw(@args);
+}
 
 sub map_reduce_raw {
-  state $check = compile(Any, Str, Str, Optional[CodeRef]);
-  my ( $self, $request, $content_type, $callback) = $check->(@_);
-  
-  my $body = RpbMapRedReq->encode(
-    {
-      request => $request,
-      content_type => $content_type,
-    }
-  );
+    state $check = compile( Any, Str, Str, Optional [CodeRef] );
+    my ( $self, $request, $content_type, $callback ) = $check->(@_);
 
-  $self->_parse_response(
-      key       => 'no-key',
-      bucket    => 'no-bucket',
-      operation => $MAP_REDUCE,
-      body      => $body,
-      callback  => $callback,
-      decode    => ($content_type eq 'application/json'),
-  );
-} 
+    my $body = RpbMapRedReq->encode(
+        {   request      => $request,
+            content_type => $content_type,
+        }
+    );
+
+    $self->_parse_response(
+        key       => 'no-key',
+        bucket    => 'no-bucket',
+        operation => $MAP_REDUCE,
+        body      => $body,
+        callback  => $callback,
+        decode    => ( $content_type eq 'application/json' ),
+    );
+}
 
 sub get_client_id {
-  my $self = shift;
+    my $self = shift;
 
-  $self->_parse_response(
-      operation => $GET_CLIENT_ID,
-      body      => q(),
-  ); 
+    $self->_parse_response(
+        operation => $GET_CLIENT_ID,
+        body      => q(),
+    );
 }
 
 sub set_client_id {
-    state $check = compile(Any, Str);
+    state $check = compile( Any, Str );
     my ( $self, $client_id ) = $check->(@_);
 
-    my $body = RpbSetClientIdReq->encode(
-        { client_id => $client_id }
-    );
+    my $body = RpbSetClientIdReq->encode( { client_id => $client_id } );
 
     $self->_parse_response(
         operation => $SET_CLIENT_ID,
@@ -481,12 +501,12 @@ sub set_client_id {
 }
 
 sub _pid_change {
-  $_[0]->pid != $$
+    $_[0]->pid != $$;
 }
 
 sub _parse_response {
     my ( $self, %args ) = @_;
-    
+
     my $operation = $args{operation};
 
     my $request_code  = $CODES->{$operation}->{request_code};
@@ -498,14 +518,14 @@ sub _parse_response {
     my $key          = $args{key};
     my $callback     = $args{callback};
     my $paginate     = $args{paginate};
-    
+
     $self->autodie
       or undef $@;    ## no critic (RequireLocalizedPunctuationVars)
 
     if ( $self->_pid_change ) {
-      $self->clear_pid;
-      $self->clear_driver;
-    }  
+        $self->clear_pid;
+        $self->clear_driver;
+    }
 
     $self->driver->perform_request(
         code => $request_code,
@@ -522,83 +542,94 @@ sub _parse_response {
     my $response;
     my @results;
     while (1) {
+
         # get and check response
         $response = $self->driver->read_response()
           // { code => -1, body => undef, error => $ERRNO };
 
-        my ($response_code, $response_body, $response_error) = @{$response}{qw(code body error)};
+        my ( $response_code, $response_body, $response_error ) =
+          @{$response}{qw(code body error)};
 
         # in case of internal error message
         defined $response_error
           and return $self->_process_generic_error(
-              $response_error, $operation, $bucket,
-              $key
+            $response_error, $operation, $bucket,
+            $key
           );
-    
+
         # in case of error msg
         $response_code == $ERROR_RESPONSE_CODE
           and return $self->_process_riak_error(
-              $response_body, $operation, $bucket,
-              $key
+            $response_body, $operation, $bucket,
+            $key
           );
-    
+
         # in case of default message
         $response_code != $expected_code
           and return $self->_process_generic_error(
-              "Unexpected Response Code in (got: $response_code, expected: $expected_code)",
-              $operation, $bucket, $key
+            "Unexpected Response Code in (got: $response_code, expected: $expected_code)",
+            $operation, $bucket, $key
           );
-    
+
         $response_code == $GET_CLIENT_ID_RESPONSE_CODE
           and return $self->_process_get_client_id_response($response_body);
 
         # we have a 'get' response
         $response_code == $GET_RESPONSE_CODE
-          and return $self->_process_get_response( $response_body, $bucket, $key, $decode );
+          and return $self->_process_get_response(
+            $response_body, $bucket, $key,
+            $decode
+          );
 
-        # we have a 'get_keys' response
-        # TODO: support for 1.4 (which provides 'stream', 'return_terms', and 'stream')
-        if ($response_code == $GET_KEYS_RESPONSE_CODE) {
-            my $obj = RpbListKeysResp->decode( $response_body );
-            my @keys = @{$obj->keys // []};
+# we have a 'get_keys' response
+# TODO: support for 1.4 (which provides 'stream', 'return_terms', and 'stream')
+        if ( $response_code == $GET_KEYS_RESPONSE_CODE ) {
+            my $obj  = RpbListKeysResp->decode($response_body);
+            my @keys = @{ $obj->keys // [] };
             if ($callback) {
                 $callback->($_) foreach @keys;
                 $obj->done
                   and return;
-            } else {
+            }
+            else {
                 push @results, @keys;
                 $obj->done
                   and return \@results;
             }
             next;
-        } # in case of a 'query_index' response
-        elsif ($response_code == $QUERY_INDEX_RESPONSE_CODE) {
-            my $obj = RpbIndexResp->decode( $response_body );
-            
+        }    # in case of a 'query_index' response
+        elsif ( $response_code == $QUERY_INDEX_RESPONSE_CODE ) {
+            my $obj = RpbIndexResp->decode($response_body);
+
             my $keys = $obj->keys // [];
 
-            if($paginate and wantarray) {
-              return ($keys, $obj->continuation, $obj->done);
-            } else {
-              return $keys;
+            if ( $paginate and wantarray ) {
+                return ( $keys, $obj->continuation, $obj->done );
+            }
+            else {
+                return $keys;
             }
         }
-        elsif ($response_code == $MAP_REDUCE_RESPONSE_CODE) {
-          my $obj = RpbMapRedResp->decode( $response_body );
-          
-          my $phase    = $obj->phase;
-          my $response =  ($decode) ? decode_json($obj->response // '[]') : $obj->response;
-          
-          if ($callback){
-            $obj->done
-              and return;
-            $callback->( $response, $phase);                          
-          } else {
-            $obj->done
-              and return \@results;     
-            push @results, { phase => $phase, response => $response };         
-          }
-          next;        
+        elsif ( $response_code == $MAP_REDUCE_RESPONSE_CODE ) {
+            my $obj = RpbMapRedResp->decode($response_body);
+
+            my $phase = $obj->phase;
+            my $response =
+              ($decode)
+              ? decode_json( $obj->response // '[]' )
+              : $obj->response;
+
+            if ($callback) {
+                $obj->done
+                  and return;
+                $callback->( $response, $phase );
+            }
+            else {
+                $obj->done
+                  and return \@results;
+                push @results, { phase => $phase, response => $response };
+            }
+            next;
         }
 
         # in case of no return value, signify success
@@ -608,13 +639,15 @@ sub _parse_response {
 }
 
 sub _process_get_client_id_response {
-    my ( $self, $encoded_message ) = @_;  
+    my ( $self, $encoded_message ) = @_;
 
-    $self->_process_generic_error( "Undefined Message", 'get client id', '-', '-' )
-      unless ( defined $encoded_message );
+    $self->_process_generic_error(
+        "Undefined Message", 'get client id', '-',
+        '-'
+    ) unless ( defined $encoded_message );
 
     my $decoded_message = RpbGetClientIdResp->decode($encoded_message);
-    $decoded_message->client_id;  
+    $decoded_message->client_id;
 }
 
 sub _process_get_response {
@@ -627,13 +660,16 @@ sub _process_get_response {
 
     my $contents = $decoded_message->content;
     if ( ref($contents) eq 'ARRAY' ) {
-        my $content      = $contents->[0];
-        
-        my $decode       = $should_decode && ($content->content_type eq 'application/json');
-        return { 
-          value   => ( $decode ) ? decode_json($content->value) : $content->value,
-          indexes => $content->indexes,
-          vclock  => $decoded_message->vclock,
+        my $content = $contents->[0];
+
+        my $decode =
+          $should_decode && ( $content->content_type eq 'application/json' );
+        return {
+            value => ($decode)
+            ? decode_json( $content->value )
+            : $content->value,
+            indexes => $content->indexes,
+            vclock  => $decoded_message->vclock,
         };
     }
 
@@ -659,14 +695,17 @@ sub _process_generic_error {
 
     my $extra = '';
 
-    if( $operation eq $PING ) {
-      $extra = '';
-    } elsif ( $operation eq $QUERY_INDEX) {
-      $extra = "(bucket: $bucket, $key)";
-    } elsif ( $operation eq $MAP_REDUCE) {
-      $extra = ''; # maybe add the sha1 of the request?  
-    } else {
-      $extra = "(bucket: $bucket, key: $key)";
+    if ( $operation eq $PING ) {
+        $extra = '';
+    }
+    elsif ( $operation eq $QUERY_INDEX ) {
+        $extra = "(bucket: $bucket, $key)";
+    }
+    elsif ( $operation eq $MAP_REDUCE ) {
+        $extra = '';    # maybe add the sha1 of the request?
+    }
+    else {
+        $extra = "(bucket: $bucket, key: $key)";
     }
 
     my $error_message = "Error in '$operation' $extra: $error";

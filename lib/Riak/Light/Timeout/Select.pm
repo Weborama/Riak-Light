@@ -16,7 +16,7 @@ with 'Riak::Light::Timeout';
 has socket      => ( is => 'ro', required => 1 );
 has in_timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
 has out_timeout => ( is => 'ro', isa      => Num, default => sub {0.5} );
-has select => ( is => 'ro', default => sub { IO::Select->new } );
+has select      => ( is => 'ro', default  => sub { IO::Select->new } );
 
 sub BUILD {
     $_[0]->select->add( $_[0]->socket );
@@ -44,7 +44,7 @@ sub sysread {
       if $self->select->can_read( $self->in_timeout );
 
     $self->clean();
-    $! = ETIMEDOUT;    ## no critic (RequireLocalizedPunctuationVars)
+    $! = ETIMEDOUT;                                ## no critic (RequireLocalizedPunctuationVars)
 
     undef;
 }
@@ -58,7 +58,7 @@ sub syswrite {
       if $self->select->can_write( $self->out_timeout );
 
     $self->clean();
-    $! = ETIMEDOUT;    ## no critic (RequireLocalizedPunctuationVars)
+    $! = ETIMEDOUT;                                ## no critic (RequireLocalizedPunctuationVars)
 
     undef;
 }
