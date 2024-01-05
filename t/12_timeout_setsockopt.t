@@ -1,6 +1,6 @@
 BEGIN {
     use Config;
-    if ( $Config{osname} eq 'netbsd' || $Config{osname} eq 'solaris') {
+    if ( $Config{osname} eq 'netbsd' || $Config{osname} eq 'solaris' ) {
         require Test::More;
         Test::More::plan( skip_all =>
               'should not test Riak::Light::Timeout::SetSockOpt under Solaris OR Netbsd 6.0 (or superior) and longsize 4'
@@ -21,7 +21,7 @@ subtest "test die under solaris" => sub {
     use Riak::Light::Timeout::SetSockOpt;
     my $module = Test::MockModule->new('Riak::Light::Timeout::SetSockOpt');
 
-    $module->mock( is_netbsd => 0 );
+    $module->mock( is_netbsd  => 0 );
     $module->mock( is_solaris => 1 );
 
     throws_ok {

@@ -2,8 +2,8 @@
 package Riak::Light::Timeout::Alarm;
 ## use critic
 
-use POSIX qw(ETIMEDOUT ECONNRESET);
-use Time::HiRes qw(alarm);
+use POSIX             qw(ETIMEDOUT ECONNRESET);
+use Time::HiRes       qw(alarm);
 use Riak::Light::Util qw(is_windows);
 use Carp;
 use Moo;
@@ -13,8 +13,8 @@ with 'Riak::Light::Timeout';
 # ABSTRACT: proxy to read/write using Alarm as a timeout provider ( Not Safe: can clobber previous alarm )
 
 has socket      => ( is => 'ro', required => 1 );
-has in_timeout  => ( is => 'ro', isa      => Num, default => sub {0.5} );
-has out_timeout => ( is => 'ro', isa      => Num, default => sub {0.5} );
+has in_timeout  => ( is => 'ro', isa      => Num,  default => sub {0.5} );
+has out_timeout => ( is => 'ro', isa      => Num,  default => sub {0.5} );
 has is_valid    => ( is => 'rw', isa      => Bool, default => sub {1} );
 
 sub BUILD {

@@ -13,47 +13,50 @@ use Test::LeakTrace;
 use Riak::Light;
 
 no_leaks_ok {
-	
-	my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
+
+    my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
     my $client = Riak::Light->new(
         host             => $host, port => $port,
         timeout_provider => undef
     );
 
-    $client->put(foo => bar => { my => 666});
-	$client->get(foo => 'bar');
-	$client->del(foo => 'bar');
-} ' should be ok for no timeout_provider';
+    $client->put( foo => bar => { my => 666 } );
+    $client->get( foo => 'bar' );
+    $client->del( foo => 'bar' );
+}
+' should be ok for no timeout_provider';
 
 my ( $host, $port ) = split ':', $ENV{RIAK_PBC_HOST};
 
 my $client = Riak::Light->new(
-        host             => $host, port => $port,
-        timeout_provider => 'Riak::Light::Timeout::Select'
+    host             => $host, port => $port,
+    timeout_provider => 'Riak::Light::Timeout::Select'
 );
 
 no_leaks_ok {
-	for(1..2){
-    $client->put(foo => bar => { my => 666});
-	$client->get(foo => 'bar');
-	$client->del(foo => 'bar');		
-	}
-} ' should be ok for setsockopt timeout_provider';
+    for ( 1 .. 2 ) {
+        $client->put( foo => bar => { my => 666 } );
+        $client->get( foo => 'bar' );
+        $client->del( foo => 'bar' );
+    }
+}
+' should be ok for setsockopt timeout_provider';
 
 leaktrace {
-	
-    $client->put(foo => bar => { my => 666});
-	$client->get(foo => 'bar');
-	$client->del(foo => 'bar');
-} ;
+
+    $client->put( foo => bar => { my => 666 } );
+    $client->get( foo => 'bar' );
+    $client->del( foo => 'bar' );
+};
 no_leaks_ok {
 
-my $client2 = Riak::Light->new(
+    my $client2 = Riak::Light->new(
         host             => $host, port => $port,
         timeout_provider => 'Riak::Light::Timeout::Select'
-);
-    $client2->put(foo => bar => { my => 666});
-	$client2->get(foo => 'bar');
-	$client2->del(foo => 'bar');
-} ' should be ok for setsockopt timeout_provider';
+    );
+    $client2->put( foo => bar => { my => 666 } );
+    $client2->get( foo => 'bar' );
+    $client2->del( foo => 'bar' );
+}
+' should be ok for setsockopt timeout_provider';

@@ -29,14 +29,18 @@ subtest "should not die if can connect" => sub {
     my $client;
     lives_ok {
         $client = Riak::Light->new(
-            host => '127.0.0.1',
-            port => $server->port,
+            host             => '127.0.0.1',
+            port             => $server->port,
             timeout_provider => undef,
         );
     };
 
     is $client->tcp_nodelay, 1, 'default, should be enable';
-    ok $client->driver->connector->socket->getsockopt(IPPROTO_TCP, TCP_NODELAY), "should set TCP_NODELAY to 1";
+    ok $client->driver->connector->socket->getsockopt(
+        IPPROTO_TCP,
+        TCP_NODELAY
+      ),
+      "should set TCP_NODELAY to 1";
 };
 
 subtest "should not die if can connect wihout TCP_NODELAY" => sub {
@@ -61,14 +65,18 @@ subtest "should not die if can connect wihout TCP_NODELAY" => sub {
     my $client;
     lives_ok {
         $client = Riak::Light->new(
-            host => '127.0.0.1',
-            port => $server->port,
+            host             => '127.0.0.1',
+            port             => $server->port,
             timeout_provider => undef,
-            tcp_nodelay => 0,
+            tcp_nodelay      => 0,
         );
     };
 
-    is $client->driver->connector->socket->getsockopt(IPPROTO_TCP, TCP_NODELAY), 0, "should NOT set TCP_NODELAY to 1";
+    is $client->driver->connector->socket->getsockopt(
+        IPPROTO_TCP,
+        TCP_NODELAY
+      ),
+      0, "should NOT set TCP_NODELAY to 1";
 };
 
 subtest "should die if cant connect" => sub {

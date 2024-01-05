@@ -24,13 +24,13 @@ subtest "should reconnect if PID changes in case of real fork" => sub {
     );
 
     my $client = Riak::Light->new(
-            host => '127.0.0.1',
-            port => $server->port,
-            timeout_provider => undef,
-        );
+        host             => '127.0.0.1',
+        port             => $server->port,
+        timeout_provider => undef,
+    );
 
     ok $client->has_pid, 'client should has pid';
-    
+
     my $client_pid = $client->pid;
 
     is $client_pid, $$, 'should create pid with the current pid';

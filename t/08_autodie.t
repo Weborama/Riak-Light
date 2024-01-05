@@ -67,14 +67,23 @@ subtest "should clear \$\@ between calls (exists)" => sub {
     $mock->set_true('perform_request');
     $mock->set_series(
         'read_response', { error => "ops" },
-        { error => undef, code => 10, body => RpbGetResp->encode({content => {
-                value        => q(),
-                content_type => 'application/json'
-            } }) }
+        {   error => undef,
+            code  => 10,
+            body  => RpbGetResp->encode(
+                {   content => {
+                        value        => q(),
+                        content_type => 'application/json'
+                    }
+                }
+            )
+        }
     );
 
-    ok( !$client->exists(foo => "bar"), "should not die" );
-    like( $@, qr/Error in 'get' \(bucket: foo, key: bar\): ops/, "should set \$\@ to the error" );
-    ok(  $client->exists(foo => "bar"), "should return true" );
-    ok( !$@,           " \$\@ should be clean" );
+    ok( !$client->exists( foo => "bar" ), "should not die" );
+    like(
+        $@, qr/Error in 'get' \(bucket: foo, key: bar\): ops/,
+        "should set \$\@ to the error"
+    );
+    ok( $client->exists( foo => "bar" ), "should return true" );
+    ok( !$@,                             " \$\@ should be clean" );
 };

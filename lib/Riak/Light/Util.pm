@@ -1,10 +1,13 @@
 ## no critic (RequireUseStrict, RequireUseWarnings)
 package Riak::Light::Util;
 ## use critic
+use strict;
+use warnings;
 use Config;
 use Exporter 'import';
 
-@EXPORT_OK = qw(is_windows is_netbsd is_solaris);
+our @EXPORT_OK = qw(is_windows is_netbsd is_solaris);
+
 #ABSTRACT: util class, provides is_windows, is_solaris, etc
 
 sub is_windows {
@@ -20,7 +23,7 @@ sub is_solaris {
 }
 
 1;
-
+__END__
 =head1 DESCRIPTION
   
   Internal class

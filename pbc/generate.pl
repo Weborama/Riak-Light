@@ -6,6 +6,7 @@ use Google::ProtocolBuffers;
 Google::ProtocolBuffers->parsefile(
     "$Bin/riak.proto",
     {   generate_code    => "$Bin/../lib/Riak/Light/PBC.pm",
-        create_accessors => 1
+        create_accessors => 1,
+        package_name     => 'Riak::Light::PBC',
     }
 );

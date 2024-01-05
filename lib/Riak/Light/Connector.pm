@@ -18,14 +18,14 @@ sub perform_request {
 }
 
 sub read_response {
-    my ($self)   = @_;
+    my ($self) = @_;
     my $length = $self->_read_length();    # read first four bytes
     return unless ($length);
     $self->_read_all($length);             # read the message
 }
 
 sub _read_length {
-    my ($self)   = @_;
+    my ($self) = @_;
 
     my $first_four_bytes = $self->_read_all(4);
 

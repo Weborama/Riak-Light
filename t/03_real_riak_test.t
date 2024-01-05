@@ -22,7 +22,7 @@ subtest "simple get/set/delete test" => sub {
     );
 
     my $scalar = '3.14159';
-    my $hash = { baz => 1024 };
+    my $hash   = { baz => 1024 };
 
     ok( $client->ping(),     "should can ping" );
     ok( $client->is_alive(), "should can ping" );
@@ -41,9 +41,9 @@ subtest "simple get/set/delete test" => sub {
         "should fetch the raw scalar from Riak"
     );
 
-    ok( $client->exists( foo => 'bar' ), "should exists" );
-    ok( $client->del( foo => 'bar' ), "should delete the hashref" );
-    ok( !$client->get( foo => 'bar' ), "should fetch UNDEF from Riak" );
+    ok( $client->exists( foo => 'bar' ),  "should exists" );
+    ok( $client->del( foo => 'bar' ),     "should delete the hashref" );
+    ok( !$client->get( foo => 'bar' ),    "should fetch UNDEF from Riak" );
     ok( !$client->exists( foo => 'bar' ), "should not exists" );
 
     ok( $client->put( foo => "baz", 'TEXT', 'plain/text' ),
@@ -53,9 +53,10 @@ subtest "simple get/set/delete test" => sub {
         "should fetch the text from Riak"
     );
 
-    my $vclock = $client->get_vclock(foo => "baz");
+    my $vclock = $client->get_vclock( foo => "baz" );
 
     ok $vclock, "should return vclock=$vclock";
+
     #ok(!$@, "should has no error - foo => bar is undefined");
 };
 
@@ -87,7 +88,7 @@ subtest "get keys" => sub {
     $client->get_keys( $bucket => sub { push @keys, $_[0] } );
 
     @keys = sort @keys;
-    is( scalar @keys, 3, 'should return 3 items' );
+    is( scalar @keys, 3,     'should return 3 items' );
     is( $keys[0],     'bam', '..bam' );
     is( $keys[1],     'bar', '..bar' );
     is( $keys[2],     'baz', '..baz' );
